@@ -1,0 +1,114 @@
+[tool.poetry]
+name = "attendance-system"
+version = "1.0.0"
+description = "PaSoRi RC-S300を使用した勤怠管理システム"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{include = "backend"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.104.1"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+sqlalchemy = "^2.0.23"
+alembic = "^1.12.1"
+pydantic = "^2.5.0"
+python-dotenv = "^1.0.0"
+nfcpy = "^1.0.4"
+slack-sdk = "^3.26.1"
+schedule = "^1.2.1"
+pandas = "^2.1.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+flake8 = "^6.1.0"
+mypy = "^1.7.1"
+black = "^23.11.0"
+bandit = "^1.7.5"
+safety = "^3.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ['py38', 'py39', 'py310', 'py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = [
+    "migrations/",
+    "venv/",
+    ".venv/",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = [
+    "tests",
+]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.coverage.run]
+source = ["backend"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__init__.py",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv"]
+skips = ["B101"]  # assert_used test
+
+[tool.pylint]
+max-line-length = 120
+disable = [
+    "C0111",  # missing-docstring
+    "C0103",  # invalid-name
+    "R0903",  # too-few-public-methods
+    "R0801",  # duplicate-code
+    "W0613",  # unused-argument
+]

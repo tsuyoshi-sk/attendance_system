@@ -1,0 +1,29 @@
+[flake8]
+max-line-length = 120
+max-complexity = 10
+exclude = 
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    migrations,
+    .pytest_cache,
+    .mypy_cache
+
+ignore = 
+    # E203: whitespace before ':' (Black互換性)
+    E203,
+    # W503: line break before binary operator (Black互換性)
+    W503,
+    # E501: line too long (max-line-lengthで制御)
+    E501
+
+per-file-ignores =
+    # __init__.pyではインポートのみ許可
+    __init__.py:F401,F403
+    # テストファイルではassertとマジックナンバー許可
+    test_*.py:S101,S105

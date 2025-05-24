@@ -1,0 +1,237 @@
+"""
+勤怠管理システム FastAPIメインアプリケーション
+
+APIサーバーのエントリーポイントとなるモジュールです。
+"""
+
+import logging
+from contextlib import asynccontextmanager
+from typing import Any, Dict
+
+from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+import sys
+import os
+
+# プロジェクトルートをPythonパスに追加
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from config.config import config
+from backend.app.database import init_db
+from backend.app.api import punch, admin
+
+
+# ログ設定
+logging.basicConfig(
+    level=getattr(logging, config.LOG_LEVEL.upper()),
+    format=config.LOG_FORMAT,
+    handlers=[
+        logging.StreamHandler(),
+    ]
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    アプリケーションのライフサイクル管理
+    
+    起動時と終了時の処理を定義します。
+    """
+    # 起動時の処理
+    logger.info(f"{config.APP_NAME} v{config.APP_VERSION} 起動中...")
+    
+    # 設定の検証
+    try:
+        config.validate()
+        logger.info("設定の検証が完了しました")
+    except Exception as e:
+        logger.error(f"設定エラー: {e}")
+        raise
+    
+    # データベースの初期化
+    try:
+        init_db()
+        logger.info("データベースの初期化が完了しました")
+    except Exception as e:
+        logger.error(f"データベース初期化エラー: {e}")
+        raise
+    
+    logger.info("アプリケーションの起動が完了しました")
+    
+    yield
+    
+    # 終了時の処理
+    logger.info("アプリケーションを終了しています...")
+
+
+# FastAPIアプリケーションの作成
+app = FastAPI(
+    title=config.APP_NAME,
+    version=config.APP_VERSION,
+    description="PaSoRi RC-S300を使用した勤怠管理システムのAPIサーバー",
+    lifespan=lifespan,
+    docs_url="/docs" if config.DEBUG else None,
+    redoc_url="/redoc" if config.DEBUG else None,
+)
+
+# CORS設定
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# グローバル例外ハンドラー
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """HTTPExceptionのカスタムハンドラー"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "message": exc.detail,
+                "status_code": exc.status_code,
+            }
+        }
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """バリデーションエラーのカスタムハンドラー"""
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": {
+                "message": "入力データの検証エラー",
+                "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "details": exc.errors(),
+            }
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """一般的な例外のカスタムハンドラー"""
+    logger.error(f"予期しないエラー: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": {
+                "message": "内部サーバーエラーが発生しました",
+                "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            }
+        }
+    )
+
+
+# ルートエンドポイント
+@app.get("/", tags=["ルート"])
+async def root() -> Dict[str, str]:
+    """
+    APIルートエンドポイント
+    
+    Returns:
+        Dict[str, str]: アプリケーション情報
+    """
+    return {
+        "name": config.APP_NAME,
+        "version": config.APP_VERSION,
+        "status": "running"
+    }
+
+
+# ヘルスチェックエンドポイント
+@app.get("/health", tags=["ヘルスチェック"])
+async def health_check() -> Dict[str, Any]:
+    """
+    ヘルスチェックエンドポイント
+    
+    Returns:
+        Dict[str, Any]: システムの稼働状況
+    """
+    return {
+        "status": "healthy",
+        "name": config.APP_NAME,
+        "version": config.APP_VERSION,
+        "database": "connected",  # TODO: 実際のDB接続チェックを実装
+        "pasori": "ready" if not config.PASORI_MOCK_MODE else "mock_mode"
+    }
+
+
+# 詳細情報エンドポイント
+@app.get("/info", tags=["システム情報"])
+async def get_info() -> Dict[str, Any]:
+    """
+    システム詳細情報エンドポイント
+    
+    Returns:
+        Dict[str, Any]: システムの詳細情報
+    """
+    return {
+        "app": {
+            "name": config.APP_NAME,
+            "version": config.APP_VERSION,
+            "debug": config.DEBUG,
+        },
+        "features": {
+            "slack_notification": config.is_slack_enabled(),
+            "pasori_mock_mode": config.is_mock_mode(),
+        },
+        "settings": {
+            "business_hours": {
+                "start": str(config.BUSINESS_START_TIME),
+                "end": str(config.BUSINESS_END_TIME),
+            },
+            "break_time": {
+                "start": str(config.BREAK_START_TIME),
+                "end": str(config.BREAK_END_TIME),
+            },
+            "rounding": {
+                "daily_minutes": config.DAILY_ROUND_MINUTES,
+                "monthly_minutes": config.MONTHLY_ROUND_MINUTES,
+            },
+            "overtime_rates": {
+                "normal": config.OVERTIME_RATE_NORMAL,
+                "late": config.OVERTIME_RATE_LATE,
+                "night": config.NIGHT_RATE,
+                "holiday": config.HOLIDAY_RATE,
+            }
+        }
+    }
+
+
+# APIルーターの登録
+app.include_router(
+    punch.router,
+    prefix=f"{config.API_V1_PREFIX}/punch",
+    tags=["打刻"]
+)
+
+app.include_router(
+    admin.router,
+    prefix=f"{config.API_V1_PREFIX}/admin",
+    tags=["管理"]
+)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=config.DEBUG,
+        log_level=config.LOG_LEVEL.lower()
+    )

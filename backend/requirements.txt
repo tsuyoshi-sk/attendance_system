@@ -1,0 +1,3 @@
+# バックエンド専用の依存関係
+# メインのrequirements.txtを参照
+-r ../requirements.txt
