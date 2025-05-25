@@ -10,8 +10,17 @@ from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
+from decimal import Decimal
 
-from backend.app.models import Employee, PunchRecord, DailySummary, MonthlySummary, PunchType
+from backend.app.models import Employee, PunchRecord, DailySummary, MonthlySummary, PunchType, WageType
+from backend.app.schemas.report import (
+    DailyReportResponse, MonthlyReportResponse,
+    PunchRecordResponse, DailySummaryData, DailyCalculations,
+    MonthlySummaryData, MonthlyWageCalculation
+)
+from backend.app.utils.time_calculator import TimeCalculator
+from backend.app.utils.wage_calculator import WageCalculator
+from config.config import config
 
 
 class ReportService:

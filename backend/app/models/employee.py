@@ -5,11 +5,18 @@
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Numeric, Enum
 from sqlalchemy.orm import relationship
 from typing import Optional
+import enum
 
 from backend.app.database import Base
+
+
+class WageType(enum.Enum):
+    """賃金タイプ"""
+    HOURLY = "hourly"      # 時給制
+    MONTHLY = "monthly"    # 月給制
 
 
 class Employee(Base):
@@ -35,6 +42,12 @@ class Employee(Base):
     
     # 雇用形態
     employment_type = Column(String(20), nullable=False, default="正社員")  # 正社員、パート、アルバイト等
+    hire_date = Column(Date, nullable=True)
+    
+    # 賃金情報
+    wage_type = Column(Enum(WageType), nullable=False, default=WageType.MONTHLY)
+    hourly_rate = Column(Numeric(10, 2), nullable=True)  # 時給 (時給制の場合)
+    monthly_salary = Column(Integer, nullable=True)       # 月給 (月給制の場合)
     
     # ステータス
     is_active = Column(Boolean, default=True, nullable=False)
@@ -47,6 +60,8 @@ class Employee(Base):
     punch_records = relationship("PunchRecord", back_populates="employee", cascade="all, delete-orphan")
     daily_summaries = relationship("DailySummary", back_populates="employee", cascade="all, delete-orphan")
     monthly_summaries = relationship("MonthlySummary", back_populates="employee", cascade="all, delete-orphan")
+    cards = relationship("EmployeeCard", back_populates="employee", cascade="all, delete-orphan")
+    user = relationship("User", back_populates="employee", uselist=False, cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Employee(id={self.id}, code={self.employee_code}, name={self.name})>"
@@ -62,6 +77,10 @@ class Employee(Base):
             "department": self.department,
             "position": self.position,
             "employment_type": self.employment_type,
+            "hire_date": self.hire_date.isoformat() if self.hire_date else None,
+            "wage_type": self.wage_type.value if self.wage_type else None,
+            "hourly_rate": float(self.hourly_rate) if self.hourly_rate else None,
+            "monthly_salary": self.monthly_salary,
             "is_active": self.is_active,
             "has_card": bool(self.card_idm_hash),
             "created_at": self.created_at.isoformat() if self.created_at else None,
