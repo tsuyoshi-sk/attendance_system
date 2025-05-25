@@ -67,7 +67,7 @@ class PunchRecord(Base):
     
     # リレーション
     employee = relationship("Employee", foreign_keys=[employee_id], back_populates="punch_records")
-    modifier = relationship("Employee", foreign_keys=[modified_by], post_update=True)
+    modifier = relationship("Employee", foreign_keys=[modified_by])
     
     # インデックス
     __table_args__ = (

@@ -26,7 +26,7 @@ class EmployeeBase(BaseModel):
     employment_type: str = Field("正社員", max_length=20, description="雇用形態")
     hire_date: Optional[date] = Field(None, description="入社日")
     wage_type: WageTypeEnum = Field(WageTypeEnum.MONTHLY, description="賃金タイプ")
-    hourly_rate: Optional[Decimal] = Field(None, ge=0, decimal_places=2, description="時給")
+    hourly_rate: Optional[Decimal] = Field(None, ge=0, description="時給")
     monthly_salary: Optional[int] = Field(None, ge=0, description="月給")
     is_active: bool = Field(True, description="有効フラグ")
 
@@ -66,7 +66,7 @@ class EmployeeUpdate(BaseModel):
     employment_type: Optional[str] = Field(None, max_length=20)
     hire_date: Optional[date] = None
     wage_type: Optional[WageTypeEnum] = None
-    hourly_rate: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    hourly_rate: Optional[Decimal] = Field(None, ge=0)
     monthly_salary: Optional[int] = Field(None, ge=0)
     is_active: Optional[bool] = None
 

@@ -8,11 +8,12 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy.orm import Session
 
 import sys
 import os
@@ -21,10 +22,9 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from config.config import config
-from backend.app.database import init_db
-from backend.app.api import punch, admin, auth
-from backend.app.middleware import AuthMiddleware, RateLimitMiddleware
-from backend.app.services.auth_service import AuthService, reports, analytics
+from backend.app.database import init_db, get_db
+from backend.app.api import punch, admin, auth, reports, analytics
+from backend.app.health_check import get_integrated_health_status
 
 
 # ログ設定
@@ -63,6 +63,8 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"データベース初期化エラー: {e}")
         raise
+    
+    # TODO: 初期データ作成処理があれば追加
     
     logger.info("アプリケーションの起動が完了しました")
     
@@ -171,6 +173,21 @@ async def health_check() -> Dict[str, Any]:
     }
 
 
+# 統合ヘルスチェックエンドポイント
+@app.get("/health/integrated", tags=["ヘルスチェック"])
+async def integrated_health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """
+    統合ヘルスチェックエンドポイント
+    
+    全サブシステムの健全性を詳細にチェックします。
+    
+    Returns:
+        Dict[str, Any]: 統合システムの詳細な稼働状況
+    """
+    from backend.app.health_check import get_integrated_health_status
+    return await get_integrated_health_status(db)
+
+
 # 詳細情報エンドポイント
 @app.get("/info", tags=["システム情報"])
 async def get_info() -> Dict[str, Any]:
@@ -215,6 +232,12 @@ async def get_info() -> Dict[str, Any]:
 
 # APIルーターの登録
 app.include_router(
+    auth.router,
+    prefix=f"{config.API_V1_PREFIX}/auth",
+    tags=["認証"]
+)
+
+app.include_router(
     punch.router,
     prefix=f"{config.API_V1_PREFIX}/punch",
     tags=["打刻"]
@@ -224,6 +247,18 @@ app.include_router(
     admin.router,
     prefix=f"{config.API_V1_PREFIX}/admin",
     tags=["管理"]
+)
+
+app.include_router(
+    reports.router,
+    prefix=f"{config.API_V1_PREFIX}/reports",
+    tags=["レポート"]
+)
+
+app.include_router(
+    analytics.router,
+    prefix=f"{config.API_V1_PREFIX}/analytics",
+    tags=["分析"]
 )
 
 

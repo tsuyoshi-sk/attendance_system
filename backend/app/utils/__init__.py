@@ -21,6 +21,8 @@ from .security import (
     validate_datetime,
     SecurityError
 )
+from .time_calculator import TimeCalculator
+from .wage_calculator import WageCalculator
 
 __all__ = [
     'offline_queue_manager',
@@ -39,4 +41,6 @@ __all__ = [
     'validate_punch_type',
     'validate_datetime',
     'SecurityError',
+    'TimeCalculator',
+    'WageCalculator',
 ]
