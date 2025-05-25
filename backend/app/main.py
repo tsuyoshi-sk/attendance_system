@@ -230,6 +230,20 @@ async def get_info() -> Dict[str, Any]:
     }
 
 
+# デバッグ用エンドポイント
+@app.get("/debug/routes")
+async def debug_routes():
+    """利用可能なルート一覧を返す"""
+    routes = []
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods)
+            })
+    return {"routes": routes}
+
+
 # APIルーターの登録
 app.include_router(
     auth.router,

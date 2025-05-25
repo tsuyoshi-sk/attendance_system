@@ -25,6 +25,12 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
+@router.get("/health")
+async def reports_health_check():
+    """レポートAPI ヘルスチェック"""
+    return {"status": "healthy", "module": "reports"}
+
+
 @router.post("/daily", response_model=List[DailyReportResponse])
 async def generate_daily_report(
     request: DailyReportRequest,
