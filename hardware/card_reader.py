@@ -22,6 +22,21 @@ from config.config import config
 logger = logging.getLogger(__name__)
 
 
+class CardReaderError(Exception):
+    """カードリーダー関連のエラー"""
+    pass
+
+
+class CardReaderConnectionError(CardReaderError):
+    """接続エラー"""
+    pass
+
+
+class CardReaderTimeoutError(CardReaderError):
+    """タイムアウトエラー"""
+    pass
+
+
 class CardReader:
     """カードリーダークラス"""
     

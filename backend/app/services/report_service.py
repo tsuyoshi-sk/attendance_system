@@ -10,8 +10,17 @@ from datetime import date, datetime, timedelta
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
+from decimal import Decimal
 
-from backend.app.models import Employee, PunchRecord, DailySummary, MonthlySummary, PunchType
+from backend.app.models import Employee, PunchRecord, DailySummary, MonthlySummary, PunchType, WageType
+from backend.app.schemas.report import (
+    DailyReportResponse, MonthlyReportResponse,
+    PunchRecordResponse, DailySummaryData, DailyCalculations,
+    MonthlySummaryData, MonthlyWageCalculation
+)
+from backend.app.utils.time_calculator import TimeCalculator
+from backend.app.utils.wage_calculator import WageCalculator
+from config.config import config
 
 
 class ReportService:
@@ -19,6 +28,220 @@ class ReportService:
     
     def __init__(self, db: Session):
         self.db = db
+        self.time_calculator = TimeCalculator()
+        self.wage_calculator = WageCalculator()
+    
+    async def generate_daily_reports(
+        self,
+        target_date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> List[DailyReportResponse]:
+        """
+        日次レポートを生成
+        
+        Args:
+            target_date: 対象日
+            employee_ids: 従業員IDリスト（省略時は全員）
+        
+        Returns:
+            List[DailyReportResponse]: 日次レポートリスト
+        """
+        query = self.db.query(Employee).filter(Employee.is_active == True)
+        if employee_ids:
+            query = query.filter(Employee.employee_code.in_(employee_ids))
+        employees = query.all()
+        
+        reports = []
+        for employee in employees:
+            report = await self._generate_employee_daily_report(employee, target_date)
+            reports.append(report)
+        
+        return reports
+    
+    async def _generate_employee_daily_report(
+        self,
+        employee: Employee,
+        target_date: date
+    ) -> DailyReportResponse:
+        """
+        従業員の日次レポートを生成
+        
+        Args:
+            employee: 従業員
+            target_date: 対象日
+        
+        Returns:
+            DailyReportResponse: 日次レポート
+        """
+        # 打刻記録を取得
+        punches = self.db.query(PunchRecord).filter(
+            and_(
+                PunchRecord.employee_id == employee.id,
+                PunchRecord.punch_time >= datetime.combine(target_date, datetime.min.time()),
+                PunchRecord.punch_time < datetime.combine(target_date + timedelta(days=1), datetime.min.time())
+            )
+        ).order_by(PunchRecord.punch_time).all()
+        
+        # 打刻記録をレスポンス形式に変換
+        punch_records = [
+            PunchRecordResponse(
+                punch_type=punch.punch_type,
+                timestamp=punch.punch_time,
+                processed=True
+            )
+            for punch in punches
+        ]
+        
+        # 時間計算
+        time_summary = self.time_calculator.calculate_daily_hours(punches)
+        
+        # 賃金計算
+        wage_calculation = self.wage_calculator.calculate_daily_wage(
+            employee=employee,
+            work_minutes=time_summary["actual_work_minutes"],
+            overtime_minutes=time_summary["overtime_minutes"],
+            night_minutes=time_summary["night_minutes"]
+        )
+        
+        # 集計データ
+        summary = DailySummaryData(
+            work_minutes=time_summary["work_minutes"],
+            overtime_minutes=time_summary["overtime_minutes"],
+            night_minutes=time_summary["night_minutes"],
+            outside_minutes=time_summary["outside_minutes"],
+            break_minutes=time_summary["break_minutes"],
+            actual_work_minutes=time_summary["actual_work_minutes"]
+        )
+        
+        # 計算結果
+        calculations = DailyCalculations(
+            regular_hours=wage_calculation["regular_hours"],
+            overtime_hours=wage_calculation["overtime_hours"],
+            night_hours=wage_calculation["night_hours"],
+            basic_wage=wage_calculation["basic_wage"],
+            overtime_wage=wage_calculation["overtime_wage"],
+            night_wage=wage_calculation["night_wage"],
+            total_wage=wage_calculation["total_wage"]
+        )
+        
+        return DailyReportResponse(
+            date=target_date,
+            employee_id=employee.employee_code,
+            employee_name=employee.name,
+            punch_records=punch_records,
+            summary=summary,
+            calculations=calculations
+        )
+    
+    async def generate_monthly_reports(
+        self,
+        year: int,
+        month: int,
+        employee_ids: Optional[List[str]] = None
+    ) -> List[MonthlyReportResponse]:
+        """
+        月次レポートを生成
+        
+        Args:
+            year: 年
+            month: 月
+            employee_ids: 従業員IDリスト（省略時は全員）
+        
+        Returns:
+            List[MonthlyReportResponse]: 月次レポートリスト
+        """
+        query = self.db.query(Employee).filter(Employee.is_active == True)
+        if employee_ids:
+            query = query.filter(Employee.employee_code.in_(employee_ids))
+        employees = query.all()
+        
+        reports = []
+        for employee in employees:
+            report = await self._generate_employee_monthly_report(employee, year, month)
+            reports.append(report)
+        
+        return reports
+    
+    async def _generate_employee_monthly_report(
+        self,
+        employee: Employee,
+        year: int,
+        month: int
+    ) -> MonthlyReportResponse:
+        """
+        従業員の月次レポートを生成
+        
+        Args:
+            employee: 従業員
+            year: 年
+            month: 月
+        
+        Returns:
+            MonthlyReportResponse: 月次レポート
+        """
+        # 月の開始日と終了日
+        first_day = date(year, month, 1)
+        if month == 12:
+            last_day = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = date(year, month + 1, 1) - timedelta(days=1)
+        
+        # 日次レポートを集計
+        daily_reports = []
+        total_work_minutes = 0
+        total_overtime_minutes = 0
+        total_night_minutes = 0
+        total_basic_wage = 0
+        total_overtime_wage = 0
+        total_night_wage = 0
+        work_days = 0
+        
+        current_date = first_day
+        while current_date <= last_day:
+            daily_report = await self._generate_employee_daily_report(employee, current_date)
+            daily_reports.append(daily_report)
+            
+            if daily_report.summary.actual_work_minutes > 0:
+                work_days += 1
+                total_work_minutes += daily_report.summary.actual_work_minutes
+                total_overtime_minutes += daily_report.summary.overtime_minutes
+                total_night_minutes += daily_report.summary.night_minutes
+                total_basic_wage += daily_report.calculations.basic_wage
+                total_overtime_wage += daily_report.calculations.overtime_wage
+                total_night_wage += daily_report.calculations.night_wage
+            
+            current_date += timedelta(days=1)
+        
+        # 月次集計データ
+        monthly_summary = MonthlySummaryData(
+            work_days=work_days,
+            total_work_hours=total_work_minutes / 60.0,
+            regular_hours=(total_work_minutes - total_overtime_minutes) / 60.0,
+            overtime_hours=self.time_calculator.round_monthly_overtime(total_overtime_minutes) / 60.0,
+            night_hours=total_night_minutes / 60.0,
+            holiday_hours=0.0  # TODO: 休日労働時間の計算
+        )
+        
+        # 月次賃金計算
+        wage_calculation = MonthlyWageCalculation(
+            basic_wage=total_basic_wage,
+            overtime_wage=total_overtime_wage,
+            night_wage=total_night_wage,
+            holiday_wage=0.0,  # TODO: 休日手当の計算
+            total_wage=total_basic_wage + total_overtime_wage + total_night_wage,
+            deductions=0.0,  # TODO: 控除額の計算
+            net_wage=total_basic_wage + total_overtime_wage + total_night_wage
+        )
+        
+        return MonthlyReportResponse(
+            year=year,
+            month=month,
+            employee_id=employee.employee_code,
+            employee_name=employee.name,
+            monthly_summary=monthly_summary,
+            wage_calculation=wage_calculation,
+            daily_breakdown=daily_reports
+        )
     
     async def generate_daily_summary(
         self,
