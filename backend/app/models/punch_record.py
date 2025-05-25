@@ -15,10 +15,10 @@ from backend.app.database import Base
 
 class PunchType(str, Enum):
     """打刻種別"""
-    CLOCK_IN = "clock_in"        # 出勤
-    CLOCK_OUT = "clock_out"      # 退勤
-    BREAK_START = "break_start"  # 外出
-    BREAK_END = "break_end"      # 戻り
+    IN = "in"              # 出勤
+    OUT = "out"            # 退勤
+    OUTSIDE = "outside"    # 外出
+    RETURN = "return"      # 戻り
 
 
 class PunchRecord(Base):
@@ -67,7 +67,7 @@ class PunchRecord(Base):
     
     # リレーション
     employee = relationship("Employee", foreign_keys=[employee_id], back_populates="punch_records")
-    modifier = relationship("Employee", foreign_keys=[modified_by])
+    modifier = relationship("Employee", foreign_keys=[modified_by], post_update=True)
     
     # インデックス
     __table_args__ = (
@@ -105,9 +105,9 @@ class PunchRecord(Base):
     def punch_type_display(self) -> str:
         """打刻種別の表示名を取得"""
         display_names = {
-            PunchType.CLOCK_IN: "出勤",
-            PunchType.CLOCK_OUT: "退勤",
-            PunchType.BREAK_START: "外出",
-            PunchType.BREAK_END: "戻り",
+            PunchType.IN: "出勤",
+            PunchType.OUT: "退勤",
+            PunchType.OUTSIDE: "外出",
+            PunchType.RETURN: "戻り",
         }
         return display_names.get(self.punch_type, self.punch_type)
