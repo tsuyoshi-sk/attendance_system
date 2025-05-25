@@ -27,6 +27,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get("/health")
+async def admin_health_check():
+    """管理API ヘルスチェック"""
+    return {"status": "healthy", "module": "admin"}
+
+
 @router.get("/employees", response_model=EmployeeListResponse)
 async def get_employees(
     skip: int = Query(0, ge=0, description="スキップ件数"),

@@ -17,6 +17,12 @@ from backend.app.services.punch_service import PunchService
 router = APIRouter()
 
 
+@router.get("/health")
+async def punch_health_check():
+    """打刻API ヘルスチェック"""
+    return {"status": "healthy", "module": "punch"}
+
+
 @router.post("/", response_model=Dict[str, Any])
 async def create_punch(
     card_idm: str,

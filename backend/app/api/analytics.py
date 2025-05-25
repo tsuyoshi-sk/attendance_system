@@ -20,6 +20,12 @@ router = APIRouter()
 logger = get_logger(__name__)
 
 
+@router.get("/health")
+async def analytics_health_check():
+    """分析API ヘルスチェック"""
+    return {"status": "healthy", "module": "analytics"}
+
+
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard(
     db: Session = Depends(get_db)

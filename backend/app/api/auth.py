@@ -25,6 +25,12 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
+@router.get("/health")
+async def auth_health_check():
+    """認証API ヘルスチェック"""
+    return {"status": "healthy", "module": "auth"}
+
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
