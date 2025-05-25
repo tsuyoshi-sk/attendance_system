@@ -22,7 +22,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from config.config import config
 from backend.app.database import init_db
-from backend.app.api import punch, admin
+from backend.app.api import punch, admin, auth
+from backend.app.middleware import AuthMiddleware, RateLimitMiddleware
+from backend.app.services.auth_service import AuthService, reports, analytics
 
 
 # ログ設定
