@@ -64,9 +64,9 @@ run: ## アプリケーションを起動
 	@echo "🚀 アプリケーションを起動しています..."
 	@cd $(BACKEND_DIR) && $(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-dev: ## 開発モード（自動リロード）で起動
+dev: init-db ## 開発モード（自動リロード）で起動
 	@echo "🔧 開発モードで起動しています..."
-	@cd $(BACKEND_DIR) && $(PYTHON) -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+	@$(PYTHON) -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 
 test: ## テストを実行
 	@echo "🧪 テストを実行しています..."
@@ -95,9 +95,12 @@ security: ## セキュリティチェック（bandit）
 	@$(PYTHON) -m bandit -r $(BACKEND_DIR) -ll
 
 # データベース
-db-init: ## データベースを初期化
-	@echo "🗄️  データベースを初期化しています..."
-	@$(PYTHON) -c "from backend.app.database import init_db; init_db()"
+init-db: ## データベースを初期化
+	@echo "🗄️ データベース初期化中..."
+	@$(PYTHON) scripts/init_database.py
+	@$(PYTHON) -c "from backend.app.database import init_db; init_db()" 2>/dev/null || echo "Alembic migration may be needed"
+
+db-init: init-db ## データベースを初期化（エイリアス）
 
 db-migrate: ## データベースマイグレーションを実行
 	@echo "🗄️  マイグレーションを実行しています..."

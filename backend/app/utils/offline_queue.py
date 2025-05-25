@@ -39,10 +39,7 @@ class OfflineQueueManager:
         Args:
             db_path: SQLiteデータベースのパス
         """
-        if db_path is None:
-            db_path = os.path.join(config.DATA_DIR, "offline_queue.db")
-        
-        self.db_path = db_path
+        self.db_path = self._get_db_path(db_path)
         self.db_lock = Lock()
         self.sync_thread = None
         self.stop_event = Event()
@@ -50,17 +47,65 @@ class OfflineQueueManager:
         self.slack_client = None
         
         # Slack通知の設定
-        if config.SLACK_ENABLED and config.SLACK_TOKEN:
+        if hasattr(config, 'SLACK_ENABLED') and config.SLACK_ENABLED and hasattr(config, 'SLACK_TOKEN') and config.SLACK_TOKEN:
             self.slack_client = WebClient(token=config.SLACK_TOKEN)
         
-        # データベース初期化
-        self._init_database()
+        # データベースの確実な準備
+        self._ensure_database_ready()
         
         # 起動時に古いデータをクリーンアップ
         self._cleanup_old_records()
     
+    def _get_db_path(self, db_path: Optional[str] = None) -> str:
+        """データベースパスの安全な取得"""
+        if db_path is not None:
+            return db_path
+        
+        # DATA_DIRが設定されていない場合のフォールバック
+        if hasattr(config, 'DATA_DIR') and config.DATA_DIR:
+            base_path = Path(config.DATA_DIR)
+        else:
+            base_path = Path("./data")
+        
+        # ディレクトリの確実な作成
+        base_path.mkdir(exist_ok=True)
+        return str(base_path / "offline_queue.db")
+    
+    def _ensure_database_ready(self):
+        """データベースの確実な準備"""
+        try:
+            self._init_database()
+            logger.info(f"Database initialized successfully: {self.db_path}")
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}")
+            # フォールバック: メモリ内データベース
+            self.db_path = ":memory:"
+            logger.warning("Using in-memory database as fallback")
+            self._init_database()
+    
     def _init_database(self):
         """データベーステーブルを初期化"""
+        # データベースディレクトリの自動作成
+        if self.db_path != ":memory:":
+            db_dir = os.path.dirname(self.db_path)
+            if db_dir and not os.path.exists(db_dir):
+                os.makedirs(db_dir, exist_ok=True)
+                logger.info(f"Created database directory: {db_dir}")
+        
+        # データベースファイルの確実な作成
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("SELECT 1")  # 接続テスト
+        except sqlite3.OperationalError:
+            if self.db_path != ":memory:":
+                # ファイル作成
+                try:
+                    open(self.db_path, 'a').close()
+                    logger.info(f"Created database file: {self.db_path}")
+                except Exception as e:
+                    logger.error(f"Failed to create database file: {e}")
+                    raise
+        
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS offline_punches (
