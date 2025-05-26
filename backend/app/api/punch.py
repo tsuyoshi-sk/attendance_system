@@ -26,7 +26,7 @@ async def punch_health_check():
 @router.post("/", response_model=Dict[str, Any])
 async def create_punch(
     card_idm: str,
-    punch_type: PunchType,
+    punch_type: str,
     db: Session = Depends(get_db),
     device_type: Optional[str] = "pasori",
     note: Optional[str] = None,
@@ -36,7 +36,7 @@ async def create_punch(
     
     Args:
         card_idm: カードのIDm（ハッシュ化前）
-        punch_type: 打刻種別
+        punch_type: 打刻種別 ("in", "out", "outside", "return")
         db: データベースセッション
         device_type: デバイス種別
         note: 備考
@@ -48,10 +48,19 @@ async def create_punch(
         HTTPException: エラー発生時
     """
     try:
+        # 文字列をPunchTypeに変換
+        try:
+            punch_type_enum = PunchType(punch_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"無効な打刻種別です: {punch_type}. 有効な値: in, out, outside, return"
+            )
+        
         service = PunchService(db)
         result = await service.create_punch(
             card_idm=card_idm,
-            punch_type=punch_type,
+            punch_type=punch_type_enum,
             device_type=device_type,
             note=note
         )
