@@ -38,6 +38,7 @@ class EnhancedNFCClient {
         this.isScanning = false;
         this.currentScanId = null;
         this.scanTimeout = null;
+        this.activeRequests = new Set();
         
         // イベントハンドラー
         this.eventHandlers = {
@@ -69,15 +70,20 @@ class EnhancedNFCClient {
         // クライアントIDを保存
         Utils.storage.set(Config.STORAGE.CLIENT_ID, this.clientId);
         
+        // イベントリスナーをバインドして保存（後でクリーンアップ用）
+        this.handleOnlineBound = () => this.handleOnline();
+        this.handleOfflineBound = () => this.handleOffline();
+        this.handleBeforeUnloadBound = () => this.cleanup();
+        
         // オンライン/オフラインイベント
-        window.addEventListener('online', () => this.handleOnline());
-        window.addEventListener('offline', () => this.handleOffline());
+        window.addEventListener('online', this.handleOnlineBound);
+        window.addEventListener('offline', this.handleOfflineBound);
         
         // ページ離脱時の処理
-        window.addEventListener('beforeunload', () => this.disconnect());
+        window.addEventListener('beforeunload', this.handleBeforeUnloadBound);
         
         // 定期的な品質チェック
-        setInterval(() => this.checkConnectionQuality(), 30000);
+        this.qualityCheckInterval = setInterval(() => this.checkConnectionQuality(), 30000);
         
         Utils.log('info', 'EnhancedNFCClient initialized', {
             clientId: this.clientId,
@@ -304,6 +310,7 @@ class EnhancedNFCClient {
                 pendingRequest.reject(new Error(error_message || 'スキャン失敗'));
             }
             this.pendingRequests.delete(scan_id);
+            this.activeRequests.delete(scan_id);
         }
         
         // スキャン状態更新
@@ -361,13 +368,28 @@ class EnhancedNFCClient {
                 Utils.log('debug', 'Message sent', message);
             } catch (error) {
                 Utils.log('error', 'Failed to send message', error);
-                this.messageQueue.push(message);
+                this.queueMessage(message);
             }
         } else {
             // オフライン時はキューに追加
-            this.messageQueue.push(message);
+            this.queueMessage(message);
             Utils.log('debug', 'Message queued', message);
         }
+    }
+    
+    /**
+     * メッセージをキューに追加（バックプレッシャー対応）
+     */
+    queueMessage(message) {
+        const maxQueueSize = Config.WS.MAX_QUEUE_SIZE || 100;
+        
+        if (this.messageQueue.length >= maxQueueSize) {
+            // 最も古いメッセージを削除
+            const removed = this.messageQueue.shift();
+            Utils.log('warn', 'Message queue full, dropping oldest message', removed);
+        }
+        
+        this.messageQueue.push(message);
     }
 
     /**
@@ -379,6 +401,14 @@ class EnhancedNFCClient {
         }
         
         const scanId = Utils.generateScanId();
+        
+        // 重複リクエストのチェック
+        if (this.activeRequests.has(scanId)) {
+            Utils.log('warn', 'Duplicate scan request detected', { scanId });
+            return;
+        }
+        
+        this.activeRequests.add(scanId);
         this.currentScanId = scanId;
         this.isScanning = true;
         
@@ -388,6 +418,7 @@ class EnhancedNFCClient {
                 this.isScanning = false;
                 this.currentScanId = null;
                 this.pendingRequests.delete(scanId);
+                this.activeRequests.delete(scanId);
                 reject(new Error('スキャンタイムアウト'));
             }, Config.NFC.SCAN_TIMEOUT);
             
@@ -637,6 +668,65 @@ class EnhancedNFCClient {
         
         this.messageQueue = [];
         this.pendingRequests.clear();
+    }
+
+    /**
+     * クリーンアップ処理
+     */
+    cleanup() {
+        Utils.log('info', 'Cleaning up EnhancedNFCClient');
+        
+        // イベントリスナーの削除
+        if (this.handleOnlineBound) {
+            window.removeEventListener('online', this.handleOnlineBound);
+        }
+        if (this.handleOfflineBound) {
+            window.removeEventListener('offline', this.handleOfflineBound);
+        }
+        if (this.handleBeforeUnloadBound) {
+            window.removeEventListener('beforeunload', this.handleBeforeUnloadBound);
+        }
+        
+        // インターバルのクリア
+        if (this.qualityCheckInterval) {
+            clearInterval(this.qualityCheckInterval);
+            this.qualityCheckInterval = null;
+        }
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = null;
+        }
+        
+        // タイムアウトのクリア
+        if (this.pongTimeout) {
+            clearTimeout(this.pongTimeout);
+            this.pongTimeout = null;
+        }
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+        if (this.scanTimeout) {
+            clearTimeout(this.scanTimeout);
+            this.scanTimeout = null;
+        }
+        
+        // WebSocket接続のクローズ
+        this.disconnect();
+        
+        // メモリの解放
+        this.messageQueue = [];
+        this.pendingRequests.clear();
+        this.messageBuffer = [];
+        this.latencyHistory = [];
+        this.eventHandlers = {
+            connect: [],
+            disconnect: [],
+            message: [],
+            error: [],
+            stateChange: [],
+            qualityChange: []
+        };
     }
 
     /**

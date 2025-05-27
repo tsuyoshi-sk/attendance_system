@@ -4,6 +4,7 @@
 打刻関連のAPIエンドポイントを定義します。
 """
 
+import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,6 +13,8 @@ from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app.models import Employee, PunchRecord, PunchType
 from backend.app.services.punch_service import PunchService
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -49,17 +52,9 @@ async def create_punch(
     """
     try:
         # Convert string to PunchType enum
-        try:
-            # Log the incoming punch_type for debugging
-            print(f"DEBUG: Received punch_type: {punch_type} (type: {type(punch_type)})")
-            punch_type_enum = PunchType(punch_type)
-            print(f"DEBUG: Converted to enum: {punch_type_enum} (value: {punch_type_enum.value})")
-        except ValueError as e:
-            print(f"DEBUG: ValueError during enum conversion: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid punch_type: {punch_type}. Valid values are: {[e.value for e in PunchType]}"
-            )
+        logger.debug(f"Received punch_type: {punch_type} (type: {type(punch_type)})")
+        punch_type_enum = PunchType(punch_type)
+        logger.debug(f"Converted to enum: {punch_type_enum} (value: {punch_type_enum.value})")
         
         service = PunchService(db)
         result = await service.create_punch(
@@ -70,11 +65,20 @@ async def create_punch(
         )
         return result
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        logger.error(f"ValueError during processing: {e}")
+        # Check if it's enum conversion error
+        if "is not a valid PunchType" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid punch_type: {punch_type}. Valid values are: {[e.value for e in PunchType]}"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
     except Exception as e:
+        logger.error(f"Unexpected error during punch creation: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"打刻処理中にエラーが発生しました: {str(e)}"

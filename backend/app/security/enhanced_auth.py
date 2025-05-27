@@ -8,11 +8,13 @@ Advanced security features including:
 - Security event auditing
 """
 
+import os
 import secrets
 import hashlib
 import hmac
 import time
 import json
+import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List, Set
 from cryptography.fernet import Fernet
@@ -34,17 +36,31 @@ logger = logging.getLogger(__name__)
 
 class SecurityConfig:
     """Security configuration"""
-    # JWT settings
-    JWT_SECRET_KEY = secrets.token_urlsafe(32)
-    JWT_ALGORITHM = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
+    # JWT settings - Load from environment or config
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', None)
+    if not JWT_SECRET_KEY:
+        # Import from config if available
+        try:
+            from config.config import settings
+            JWT_SECRET_KEY = settings.JWT_SECRET_KEY
+        except ImportError:
+            # Fallback for development only
+            logger.warning("JWT_SECRET_KEY not found in environment or config. Using generated key for development.")
+            JWT_SECRET_KEY = secrets.token_urlsafe(32)
+    
+    JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRE_MINUTES', '30'))
     JWT_REFRESH_TOKEN_EXPIRE_DAYS = 7
     
     # WebSocket token settings
     WS_TOKEN_EXPIRE_MINUTES = 60
     
     # Encryption settings
-    ENCRYPTION_KEY = Fernet.generate_key()
+    ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', None)
+    if not ENCRYPTION_KEY:
+        ENCRYPTION_KEY = Fernet.generate_key()
+    else:
+        ENCRYPTION_KEY = ENCRYPTION_KEY.encode() if isinstance(ENCRYPTION_KEY, str) else ENCRYPTION_KEY
     
     # Password policy
     MIN_PASSWORD_LENGTH = 12
