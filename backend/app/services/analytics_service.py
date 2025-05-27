@@ -77,7 +77,7 @@ class AnalyticsService:
             and_(
                 PunchRecord.punch_time >= datetime.combine(today, datetime.min.time()),
                 PunchRecord.punch_time < datetime.combine(today + timedelta(days=1), datetime.min.time()),
-                PunchRecord.punch_type == PunchType.CLOCK_IN.value
+                PunchRecord.punch_type == PunchType.IN.value
             )
         ).scalar() or 0
         
@@ -119,7 +119,7 @@ class AnalyticsService:
             and_(
                 PunchRecord.punch_time >= datetime.combine(first_day, datetime.min.time()),
                 PunchRecord.punch_time <= datetime.combine(today + timedelta(days=1), datetime.min.time()),
-                PunchRecord.punch_type == PunchType.CLOCK_IN.value
+                PunchRecord.punch_type == PunchType.IN.value
             )
         ).first()
         
@@ -496,7 +496,7 @@ class AnalyticsService:
                 and_(
                     PunchRecord.punch_time >= datetime.combine(first_day, datetime.min.time()),
                     PunchRecord.punch_time < datetime.combine(last_day + timedelta(days=1), datetime.min.time()),
-                    PunchRecord.punch_type == PunchType.CLOCK_IN.value
+                    PunchRecord.punch_type == PunchType.IN.value
                 )
             ).scalar() or 0
             
@@ -634,13 +634,13 @@ class AnalyticsService:
             
             if latest_punch:
                 status = "unknown"
-                if latest_punch.punch_type == PunchType.CLOCK_IN.value:
+                if latest_punch.punch_type == PunchType.IN.value:
                     status = "working"
-                elif latest_punch.punch_type == PunchType.BREAK_START.value:
+                elif latest_punch.punch_type == PunchType.OUTSIDE.value:
                     status = "break"
-                elif latest_punch.punch_type == PunchType.BREAK_END.value:
+                elif latest_punch.punch_type == PunchType.RETURN.value:
                     status = "working"
-                elif latest_punch.punch_type == PunchType.CLOCK_OUT.value:
+                elif latest_punch.punch_type == PunchType.OUT.value:
                     status = "finished"
                 
                 if status in ["working", "break"]:

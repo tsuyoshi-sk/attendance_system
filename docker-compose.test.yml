@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Testing
+  postgres-test:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: nfc_timecard_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d nfc_timecard_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API for Testing
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    environment:
+      DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/nfc_timecard_test
+      ENVIRONMENT: test
+      DEBUG: "true"
+      SECRET_KEY: test_secret_key_12345
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:8000"
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - ./tests:/tests
+    command: pytest --cov=app --cov-report=xml --cov-report=html
+
+  # Frontend for Testing
+  frontend-test:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.test
+    environment:
+      NODE_ENV: test
+      REACT_APP_API_URL: http://backend-test:8000
+      REACT_APP_WS_URL: ws://backend-test:8000
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend-test
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run test:ci
+
+  # Selenium Hub for E2E Testing
+  selenium-hub:
+    image: selenium/hub:4.15.0
+    ports:
+      - "4444:4444"
+    environment:
+      GRID_MAX_SESSION: 10
+      GRID_BROWSER_TIMEOUT: 300
+      GRID_TIMEOUT: 300
+
+  # Chrome Node for Selenium
+  chrome:
+    image: selenium/node-chrome:4.15.0
+    depends_on:
+      - selenium-hub
+    environment:
+      SE_EVENT_BUS_HOST: selenium-hub
+      SE_EVENT_BUS_PUBLISH_PORT: 4442
+      SE_EVENT_BUS_SUBSCRIBE_PORT: 4443
+      NODE_MAX_INSTANCES: 5
+      NODE_MAX_SESSION: 5
+    volumes:
+      - /dev/shm:/dev/shm
+
+  # Performance Testing with Locust
+  locust:
+    image: locustio/locust:2.17.0
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./tests/performance:/mnt/locust
+    command: -f /mnt/locust/locustfile.py --host=http://backend-test:8000
+    depends_on:
+      - backend-test
+
+  # Security Testing with OWASP ZAP
+  zap:
+    image: owasp/zap2docker-stable:2.14.0
+    command: zap.sh -daemon -host 0.0.0.0 -port 8090 -config api.addrs.addr.name=.* -config api.addrs.addr.regex=true
+    ports:
+      - "8090:8090"
+    depends_on:
+      - backend-test
+
+  # Test Results Aggregator
+  test-aggregator:
+    build:
+      context: ./quality
+      dockerfile: Dockerfile
+    environment:
+      BACKEND_URL: http://backend-test:8000
+      SELENIUM_HUB_URL: http://selenium-hub:4444
+      ZAP_URL: http://zap:8090
+    volumes:
+      - ./quality:/app
+      - ./test-results:/results
+      - ./coverage:/coverage
+    depends_on:
+      - backend-test
+      - selenium-hub
+      - zap
+    command: python -m quality.aggregate_results
+
+volumes:
+  test_postgres_data:
+
+networks:
+  default:
+    name: nfc-timecard-test-network

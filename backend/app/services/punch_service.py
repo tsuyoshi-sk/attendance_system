@@ -105,16 +105,16 @@ class PunchService:
         
         if not latest_punch:
             # 本日初めての打刻の場合、出勤のみ許可
-            if punch_type != PunchType.CLOCK_IN:
+            if punch_type != PunchType.IN:
                 raise ValueError("本日の最初の打刻は出勤である必要があります")
             return
         
         # 打刻順序のルール
         valid_transitions = {
-            PunchType.CLOCK_IN: [PunchType.BREAK_START, PunchType.CLOCK_OUT],
-            PunchType.BREAK_START: [PunchType.BREAK_END],
-            PunchType.BREAK_END: [PunchType.BREAK_START, PunchType.CLOCK_OUT],
-            PunchType.CLOCK_OUT: [],  # 退勤後は打刻不可
+            PunchType.IN: [PunchType.OUTSIDE, PunchType.OUT],
+            PunchType.OUTSIDE: [PunchType.RETURN],
+            PunchType.RETURN: [PunchType.OUTSIDE, PunchType.OUT],
+            PunchType.OUT: [],  # 退勤後は打刻不可
         }
         
         last_type = PunchType(latest_punch.punch_type)
@@ -129,10 +129,10 @@ class PunchService:
     def _get_punch_type_display(self, punch_type: PunchType) -> str:
         """打刻種別の表示名を取得"""
         display_names = {
-            PunchType.CLOCK_IN: "出勤",
-            PunchType.CLOCK_OUT: "退勤",
-            PunchType.BREAK_START: "外出",
-            PunchType.BREAK_END: "戻り",
+            PunchType.IN: "出勤",
+            PunchType.OUT: "退勤",
+            PunchType.OUTSIDE: "外出",
+            PunchType.RETURN: "戻り",
         }
         return display_names.get(punch_type, punch_type.value)
     
@@ -170,10 +170,10 @@ class PunchService:
         current_status = "未出勤"
         if latest_punch:
             status_map = {
-                PunchType.CLOCK_IN.value: "勤務中",
-                PunchType.BREAK_START.value: "外出中",
-                PunchType.BREAK_END.value: "勤務中",
-                PunchType.CLOCK_OUT.value: "退勤済",
+                PunchType.IN.value: "勤務中",
+                PunchType.OUTSIDE.value: "外出中",
+                PunchType.RETURN.value: "勤務中",
+                PunchType.OUT.value: "退勤済",
             }
             current_status = status_map.get(latest_punch.punch_type, "不明")
         

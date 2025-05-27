@@ -5,11 +5,22 @@
 """
 
 import os
-from typing import Optional
+import json
+import logging
+from typing import Optional, List, Type
 from datetime import time
 from pathlib import Path
+from pydantic import BaseSettings, validator
 from dotenv import load_dotenv
 
+from .environments import (
+    BaseConfig,
+    DevelopmentConfig,
+    ProductionConfig,
+    TestingConfig
+)
+
+logger = logging.getLogger(__name__)
 
 # .envファイルの読み込み
 env_path = Path(__file__).parent / '.env'
@@ -22,30 +33,45 @@ else:
         load_dotenv(root_env)
 
 
-class Config:
+class Settings(BaseSettings):
     """アプリケーション設定クラス"""
     
     # 基本設定
     APP_NAME: str = "勤怠管理システム"
     APP_VERSION: str = "1.0.0"
-    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
+    DEBUG: bool = False
+    ENVIRONMENT: str = "development"
     
     # データベース設定
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./data/attendance.db")
-    DATABASE_ECHO: bool = os.getenv("DATABASE_ECHO", "False").lower() == "true"
+    DATABASE_URL: str = "sqlite:///./attendance.db"
+    DATABASE_ECHO: bool = False
+    
+    # セキュリティ設定
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
     # API設定
     API_V1_PREFIX: str = "/api/v1"
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     
     # CORS設定
-    CORS_ORIGINS: list = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    
+    # Redis設定
+    REDIS_URL: str = "redis://localhost:6379"
+    REDIS_PREFIX: str = "attendance_system"
     
     # PaSoRi設定
-    IDM_HASH_SECRET: str = os.getenv("IDM_HASH_SECRET", "your-idm-hash-secret")
-    PASORI_TIMEOUT: int = int(os.getenv("PASORI_TIMEOUT", "3"))
-    PASORI_MOCK_MODE: bool = os.getenv("PASORI_MOCK_MODE", "True").lower() == "true"
+    IDM_HASH_SECRET: str = "your-idm-hash-secret"
+    PASORI_TIMEOUT: int = 3
+    PASORI_MOCK_MODE: bool = True
+    
+    # NFC設定
+    NFC_TIMEOUT_SECONDS: int = 30
+    NFC_MAX_RETRIES: int = 3
     
     # 勤務時間設定
     BUSINESS_START_TIME = time(9, 0)  # 09:00
@@ -64,17 +90,52 @@ class Config:
     HOLIDAY_RATE: float = float(os.getenv("HOLIDAY_RATE", "1.35"))
     
     # Slack設定
-    SLACK_ENABLED: bool = os.getenv("SLACK_ENABLED", "False").lower() == "true"
-    SLACK_TOKEN: str = os.getenv("SLACK_TOKEN", "")
-    SLACK_CHANNEL: str = os.getenv("SLACK_CHANNEL", "#attendance-alerts")
+    SLACK_ENABLED: bool = False
+    SLACK_TOKEN: str = ""
+    SLACK_CHANNEL: str = "#attendance-alerts"
     
     # ログ設定
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_FORMAT: str = os.getenv("LOG_FORMAT", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    LOG_DIR: str = os.getenv("LOG_DIR", "./logs")
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "json"
+    LOG_DIR: str = "./logs"
     
     # データディレクトリ
-    DATA_DIR: str = os.getenv("DATA_DIR", "./data")
+    DATA_DIR: str = "./data"
+    
+    # パフォーマンス設定
+    MAX_CONNECTIONS_COUNT: int = 100
+    MIN_CONNECTIONS_COUNT: int = 10
+    
+    # 監視設定
+    ENABLE_MONITORING: bool = True
+    MONITORING_INTERVAL_SECONDS: int = 60
+    
+    @validator('CORS_ORIGINS', pre=True)
+    def parse_cors_origins(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return v.split(',')
+        return v
+    
+    @validator('JWT_SECRET_KEY')
+    def validate_jwt_secret(cls, v):
+        if v == "your-secret-key-here-change-in-production":
+            import secrets
+            return secrets.token_urlsafe(32)
+        return v
+    
+    @validator('SECRET_KEY')
+    def validate_secret_key(cls, v):
+        if v == "your-app-secret-key-here-change-in-production":
+            import secrets
+            return secrets.token_urlsafe(32)
+        return v
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = 'utf-8'
     
     def __post_init__(self):
         """初期化後の処理"""
@@ -116,5 +177,66 @@ class Config:
         return "HS256"
 
 
+def get_config() -> Type[BaseConfig]:
+    """
+    環境に応じた設定クラスを取得
+    
+    Returns:
+        設定クラス
+    """
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    
+    config_map = {
+        "development": DevelopmentConfig,
+        "production": ProductionConfig,
+        "testing": TestingConfig,
+    }
+    
+    config_class = config_map.get(env, DevelopmentConfig)
+    logger.info(f"Using {config_class.__name__} for environment: {env}")
+    
+    return config_class
+
+
+# 環境別設定クラスの取得
+ConfigClass = get_config()
+
+
+class EnhancedSettings(Settings, ConfigClass):
+    """
+    拡張設定クラス
+    
+    pydanticのSettingsと環境別設定を統合
+    """
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = 'utf-8'
+        
+        # 環境別設定クラスの値をデフォルトとして使用
+        @classmethod
+        def customise_sources(
+            cls,
+            init_settings,
+            env_settings,
+            file_secret_settings,
+        ):
+            return (
+                init_settings,
+                env_settings,
+                file_secret_settings,
+            )
+
+
 # 設定インスタンス
-config = Config()
+settings = EnhancedSettings()
+
+# 後方互換性のため
+config = settings
+
+# 設定の検証とログ出力
+logger.info(f"Configuration loaded for environment: {settings.ENVIRONMENT}")
+logger.info(f"Debug mode: {settings.DEBUG}")
+logger.info(f"Database: {settings.DATABASE_URL.split('@')[0] if '@' in settings.DATABASE_URL else settings.DATABASE_URL}")
+logger.info(f"Redis: {settings.REDIS_URL}")
+logger.info(f"CORS origins: {settings.CORS_ORIGINS}")

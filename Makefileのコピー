@@ -1,0 +1,185 @@
+# NFC Timecard System - Makefile for Test Automation
+
+.PHONY: help test test-unit test-integration test-performance test-security test-e2e quality-check clean
+
+# Default target
+help:
+	@echo "NFC Timecard System - Test & Quality Management"
+	@echo "=============================================="
+	@echo "Available commands:"
+	@echo "  make test              - Run all tests"
+	@echo "  make test-unit         - Run unit tests only"
+	@echo "  make test-integration  - Run integration tests"
+	@echo "  make test-performance  - Run performance tests"
+	@echo "  make test-security     - Run security tests"
+	@echo "  make test-e2e          - Run end-to-end tests"
+	@echo "  make quality-check     - Run quality monitoring"
+	@echo "  make report            - Generate comprehensive report"
+	@echo "  make ci                - Run CI pipeline locally"
+	@echo "  make clean             - Clean test artifacts"
+
+# Install dependencies
+install:
+	pip install -r requirements.txt
+	pip install -r requirements-test.txt
+	npm install
+	cd frontend && npm install
+	cd ios && pod install
+
+# Run all tests
+test: test-unit test-integration test-performance test-security test-e2e
+	@echo "✅ All tests completed"
+
+# Unit tests
+test-unit:
+	@echo "🧪 Running unit tests..."
+	pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=html
+	@echo "✅ Unit tests completed"
+
+# Integration tests
+test-integration:
+	@echo "🔗 Running integration tests..."
+	docker-compose -f docker-compose.test.yml up -d
+	sleep 10  # Wait for services to start
+	python tests/integration/run_integration_tests.py
+	docker-compose -f docker-compose.test.yml down
+	@echo "✅ Integration tests completed"
+
+# Performance tests
+test-performance:
+	@echo "⚡ Running performance tests..."
+	docker-compose -f docker-compose.test.yml up -d backend-test postgres-test
+	sleep 10
+	python tests/performance/run_performance_tests.py
+	docker-compose -f docker-compose.test.yml down
+	@echo "✅ Performance tests completed"
+
+# Security tests
+test-security:
+	@echo "🔒 Running security tests..."
+	docker-compose -f docker-compose.test.yml up -d backend-test postgres-test zap
+	sleep 15  # Wait for ZAP to initialize
+	python tests/security/run_security_tests.py
+	docker-compose -f docker-compose.test.yml down
+	@echo "✅ Security tests completed"
+
+# End-to-end tests
+test-e2e:
+	@echo "🌐 Running end-to-end tests..."
+	docker-compose -f docker-compose.test.yml up -d
+	sleep 20  # Wait for all services
+	npm run test:e2e
+	docker-compose -f docker-compose.test.yml down
+	@echo "✅ E2E tests completed"
+
+# Quality monitoring
+quality-check:
+	@echo "📊 Running quality monitoring..."
+	python quality/monitoring/quality_monitor.py &
+	sleep 5
+	kill %1
+	@echo "✅ Quality check completed"
+
+# Generate comprehensive report
+report:
+	@echo "📋 Generating comprehensive report..."
+	python quality/reports/generate_comprehensive_report.py
+	@echo "✅ Report generated in quality_reports/"
+
+# CI pipeline simulation
+ci:
+	@echo "🚀 Running CI pipeline..."
+	make clean
+	make install
+	make test-unit
+	make test-integration
+	make test-performance
+	make test-security
+	make quality-check
+	make report
+	@echo "✅ CI pipeline completed successfully"
+
+# Clean test artifacts
+clean:
+	@echo "🧹 Cleaning test artifacts..."
+	rm -rf htmlcov/
+	rm -rf .coverage
+	rm -rf coverage.xml
+	rm -rf test_results/
+	rm -rf performance_results/
+	rm -rf security_results/
+	rm -rf integration_results/
+	rm -rf quality_reports/
+	rm -rf .pytest_cache/
+	rm -rf __pycache__/
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
+	@echo "✅ Cleanup completed"
+
+# Docker operations
+docker-build:
+	docker-compose -f docker-compose.test.yml build
+
+docker-up:
+	docker-compose -f docker-compose.test.yml up -d
+
+docker-down:
+	docker-compose -f docker-compose.test.yml down
+
+docker-logs:
+	docker-compose -f docker-compose.test.yml logs -f
+
+# Development helpers
+lint:
+	@echo "🔍 Running linters..."
+	pylint app/
+	flake8 app/
+	black --check app/
+	isort --check-only app/
+	npm run lint
+
+format:
+	@echo "✨ Formatting code..."
+	black app/ tests/
+	isort app/ tests/
+	npm run format
+
+# Database operations
+db-migrate:
+	alembic upgrade head
+
+db-rollback:
+	alembic downgrade -1
+
+db-reset:
+	alembic downgrade base
+	alembic upgrade head
+
+# Local development
+dev:
+	@echo "🚀 Starting development environment..."
+	docker-compose up -d postgres
+	uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+	cd frontend && npm run dev &
+	wait
+
+# Production build
+build:
+	@echo "🏗️ Building for production..."
+	docker build -t nfc-timecard-backend ./backend
+	docker build -t nfc-timecard-frontend ./frontend
+	cd ios && xcodebuild -project NFCTimecard.xcodeproj -scheme NFCTimecard -configuration Release
+
+# Deployment
+deploy-staging:
+	@echo "🚀 Deploying to staging..."
+	./scripts/deploy_staging.sh
+
+deploy-production:
+	@echo "🚀 Deploying to production..."
+	@read -p "Are you sure you want to deploy to production? [y/N] " confirm; \
+	if [ "$$confirm" = "y" ]; then \
+		./scripts/deploy_production.sh; \
+	else \
+		echo "Deployment cancelled."; \
+	fi

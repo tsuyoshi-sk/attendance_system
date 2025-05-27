@@ -4,10 +4,16 @@ uvicorn[standard]==0.24.0
 sqlalchemy==2.0.23
 alembic==1.12.1
 pydantic==2.5.0
+pydantic-settings==2.1.0
 email-validator==2.1.0
 python-dotenv==1.0.0
 pytest==7.4.3
 pytest-asyncio==0.21.1
+
+# 非同期データベース
+aiosqlite==0.19.0
+asyncpg==0.29.0
+redis[hiredis]==5.0.1
 
 # 認証・セキュリティ
 python-jose[cryptography]==3.3.0

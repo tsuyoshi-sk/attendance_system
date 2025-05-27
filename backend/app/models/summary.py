@@ -66,7 +66,7 @@ class DailySummary(Base):
     
     # リレーション
     employee = relationship("Employee", foreign_keys=[employee_id], back_populates="daily_summaries")
-    approver = relationship("Employee", foreign_keys=[approved_by])
+    approver = relationship("Employee", foreign_keys=[approved_by], post_update=True)
     
     # ユニーク制約
     __table_args__ = (
@@ -163,7 +163,7 @@ class MonthlySummary(Base):
     
     # リレーション
     employee = relationship("Employee", foreign_keys=[employee_id], back_populates="monthly_summaries")
-    approver = relationship("Employee", foreign_keys=[approved_by])
+    approver = relationship("Employee", foreign_keys=[approved_by], post_update=True)
     
     # ユニーク制約
     __table_args__ = (

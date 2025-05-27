@@ -1,0 +1,123 @@
+{
+  "name": "勤怠管理システム - NFC打刻",
+  "short_name": "勤怠NFC",
+  "description": "iPhone Suica対応の勤怠管理システム",
+  "start_url": "/pwa/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#4facfe",
+  "background_color": "#ffffff",
+  "lang": "ja",
+  "dir": "ltr",
+  "scope": "/pwa/",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/home.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "label": "ホーム画面"
+    },
+    {
+      "src": "screenshots/scanning.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "label": "NFCスキャン中"
+    },
+    {
+      "src": "screenshots/success.png",
+      "sizes": "1170x2532",
+      "type": "image/png",
+      "label": "打刻成功"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "出勤打刻",
+      "short_name": "出勤",
+      "description": "出勤打刻を開始",
+      "url": "/pwa/?action=punch_in",
+      "icons": [{ "src": "icons/shortcut-in.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "退勤打刻",
+      "short_name": "退勤",
+      "description": "退勤打刻を開始",
+      "url": "/pwa/?action=punch_out",
+      "icons": [{ "src": "icons/shortcut-out.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://attendance.example.com/manifest.json"
+    }
+  ],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+nfc",
+      "url": "/pwa/?nfc=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/pwa/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

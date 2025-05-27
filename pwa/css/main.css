@@ -1,0 +1,465 @@
+/* ===========================
+   勤怠管理PWA - メインスタイル
+   =========================== */
+
+/* リセット & 基本設定 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* カラーパレット */
+    --primary-color: #4facfe;
+    --secondary-color: #00f2fe;
+    --success-color: #4caf50;
+    --error-color: #f44336;
+    --warning-color: #ff9800;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --background-primary: #ffffff;
+    --background-secondary: #f5f5f5;
+    --border-color: #e0e0e0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    
+    /* スペーシング */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    
+    /* フォント */
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    
+    /* アニメーション */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --background-primary: #1a1a1a;
+        --background-secondary: #2a2a2a;
+        --border-color: #444444;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* ベース要素 */
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background-color: var(--background-primary);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* アプリコンテナ */
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ヘッダー */
+.app-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: var(--spacing-md);
+    box-shadow: 0 2px 4px var(--shadow-color);
+    position: relative;
+}
+
+.connection-status {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 0.875rem;
+    background: rgba(255, 255, 255, 0.2);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.status-icon {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ffc107;
+    transition: background-color var(--transition-fast);
+}
+
+.status-icon.connected {
+    background-color: #4caf50;
+}
+
+.status-icon.disconnected {
+    background-color: #f44336;
+}
+
+.app-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-xs);
+}
+
+.header-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* メインコンテンツ */
+.app-main {
+    flex: 1;
+    padding: var(--spacing-md);
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ステータスカード */
+.status-card {
+    background: var(--background-secondary);
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.employee-info {
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+}
+
+.employee-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.employee-code {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.current-time {
+    text-align: center;
+}
+
+.time-display {
+    font-size: 2rem;
+    font-weight: 300;
+    color: var(--primary-color);
+    font-variant-numeric: tabular-nums;
+}
+
+.date-display {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* NFCセクション */
+.nfc-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.scan-container {
+    background: white;
+    border-radius: 12px;
+    padding: var(--spacing-xl);
+    box-shadow: 0 2px 8px var(--shadow-color);
+    text-align: center;
+}
+
+/* スキャンボタン */
+.scan-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: var(--spacing-md) var(--spacing-xl);
+    font-size: 1.125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+}
+
+.scan-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+}
+
+.scan-button:active {
+    transform: translateY(0);
+}
+
+.scan-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.button-icon {
+    font-size: 1.5rem;
+}
+
+.scan-instruction {
+    margin-top: var(--spacing-md);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* NFCアイコン */
+.nfc-icon-wrapper {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto var(--spacing-lg);
+    position: relative;
+}
+
+.nfc-icon {
+    width: 100%;
+    height: 100%;
+    color: var(--primary-color);
+    opacity: 0.8;
+}
+
+/* 成功・エラー表示 */
+.success-icon, .error-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.success-icon {
+    color: var(--success-color);
+}
+
+.error-icon {
+    color: var(--error-color);
+}
+
+.punch-details {
+    margin-top: var(--spacing-lg);
+    text-align: left;
+    background: var(--background-secondary);
+    padding: var(--spacing-md);
+    border-radius: 8px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-sm) 0;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.detail-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 履歴セクション */
+.history-section {
+    background: white;
+    border-radius: 12px;
+    padding: var(--spacing-lg);
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.history-section h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: var(--text-primary);
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background: var(--background-secondary);
+    border-radius: 8px;
+    transition: background-color var(--transition-fast);
+}
+
+.history-item:hover {
+    background: var(--border-color);
+}
+
+.punch-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--primary-color);
+    color: white;
+}
+
+.punch-type-badge.out {
+    background: var(--error-color);
+}
+
+.punch-type-badge.outside {
+    background: var(--warning-color);
+}
+
+.punch-type-badge.return {
+    background: var(--success-color);
+}
+
+.empty-message {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* フッター */
+.app-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--background-secondary);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+}
+
+.connection-quality {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.quality-indicator {
+    width: 20px;
+    height: 12px;
+    background: linear-gradient(to right, #4caf50 33%, #4caf50 33%, #e0e0e0 33%);
+    border-radius: 2px;
+}
+
+.quality-indicator.excellent {
+    background: linear-gradient(to right, #4caf50 100%, #4caf50 100%);
+}
+
+.quality-indicator.good {
+    background: linear-gradient(to right, #4caf50 66%, #4caf50 66%, #e0e0e0 66%);
+}
+
+.quality-indicator.poor {
+    background: linear-gradient(to right, #ff9800 33%, #ff9800 33%, #e0e0e0 33%);
+}
+
+/* オフラインバナー */
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--warning-color);
+    color: white;
+    padding: var(--spacing-sm);
+    text-align: center;
+    font-size: 0.875rem;
+    z-index: 1000;
+    animation: slideDown var(--transition-normal);
+}
+
+/* ローディングオーバーレイ */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    color: white;
+    margin-top: var(--spacing-md);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+    .app-header h1 {
+        font-size: 1.25rem;
+    }
+    
+    .time-display {
+        font-size: 1.5rem;
+    }
+    
+    .scan-button {
+        font-size: 1rem;
+        padding: var(--spacing-sm) var(--spacing-lg);
+    }
+}
+
+/* iOS Safe Area対応 */
+@supports (padding: max(0px)) {
+    .app-header {
+        padding-top: max(var(--spacing-md), env(safe-area-inset-top));
+    }
+    
+    .app-footer {
+        padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
+    }
+}
+
+/* プリント対応 */
+@media print {
+    .scan-button,
+    .retry-button,
+    .connection-status,
+    .connection-quality,
+    .offline-banner {
+        display: none !important;
+    }
+}

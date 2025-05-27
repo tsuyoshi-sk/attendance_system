@@ -320,13 +320,13 @@ class ReportService:
         breaks = []
         
         for punch in punches:
-            if punch.punch_type == PunchType.CLOCK_IN.value and not clock_in:
+            if punch.punch_type == PunchType.IN.value and not clock_in:
                 clock_in = punch
-            elif punch.punch_type == PunchType.CLOCK_OUT.value:
+            elif punch.punch_type == PunchType.OUT.value:
                 clock_out = punch
-            elif punch.punch_type == PunchType.BREAK_START.value:
+            elif punch.punch_type == PunchType.OUTSIDE.value:
                 breaks.append({"start": punch, "end": None})
-            elif punch.punch_type == PunchType.BREAK_END.value and breaks:
+            elif punch.punch_type == PunchType.RETURN.value and breaks:
                 # 最後の未完了の外出に対応する戻り
                 for break_period in reversed(breaks):
                     if break_period["end"] is None:
@@ -464,7 +464,7 @@ class ReportService:
             and_(
                 PunchRecord.punch_time >= first_day,
                 PunchRecord.punch_time < next_month,
-                PunchRecord.punch_type == PunchType.CLOCK_IN.value
+                PunchRecord.punch_type == PunchType.IN.value
             )
         )
         
