@@ -4,6 +4,7 @@
 SQLAlchemyを使用したデータベース接続とセッション管理を行います。
 """
 
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -17,6 +18,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from config.config import config
 
+logger = logging.getLogger(__name__)
+
 
 def get_database_url():
     """データベースURLの安全な取得"""
@@ -28,7 +31,7 @@ def get_database_url():
         db_dir = os.path.dirname(db_path)
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
-            print(f"✅ Created database directory: {db_dir}")
+            logger.info(f"Created database directory: {db_dir}")
     
     return db_url
 
@@ -72,20 +75,20 @@ def init_db() -> None:
         db_dir = os.path.dirname(db_path)
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
-            print(f"✅ Created database directory: {db_dir}")
+            logger.info(f"Created database directory: {db_dir}")
     
     # 全てのモデルをインポート（Baseのメタデータに登録するため）
     from backend.app.models import employee, punch_record, summary
     
     Base.metadata.create_all(bind=engine)
-    print("✅ データベースの初期化が完了しました。")
+    logger.info("Database initialization completed")
 
 
 async def reset_connection_pool():
     """接続プールをリセット（エラー回復用）"""
     try:
         engine.dispose()
-        print("✅ Database connection pool reset")
+        logger.info("Database connection pool reset")
     except Exception as e:
-        print(f"❌ Failed to reset connection pool: {e}")
+        logger.error(f"Failed to reset connection pool: {e}")
         raise
