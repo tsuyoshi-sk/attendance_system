@@ -1,0 +1,65 @@
+# Enhanced Backend Dependencies
+# High-performance, secure backend for iPhone Suica NFC integration
+
+# Core FastAPI and async
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+uvloop==0.19.0
+websockets==12.0
+
+# Database and ORM
+sqlalchemy[asyncio]==2.0.23
+asyncpg==0.29.0
+alembic==1.12.1
+
+# Redis and caching
+redis[hiredis]==5.0.1
+aioredis==2.0.1
+aiocache==0.12.2
+
+# Security and authentication
+cryptography==41.0.8
+PyJWT==2.8.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Rate limiting
+slowapi==0.1.9
+
+# Monitoring and metrics
+psutil==5.9.6
+numpy==1.24.4
+
+# Logging
+structlog==23.2.0
+python-json-logger==2.0.8
+
+# HTTP client
+aiohttp==3.9.1
+
+# Data validation
+pydantic==2.5.0
+
+# Development and testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Database
+psycopg2-binary==2.9.9
+
+# Configuration
+python-dotenv==1.0.0
+
+# CORS
+python-cors==1.0.0
+
+# File handling
+aiofiles==23.2.1
+
+# Serialization
+msgpack==1.0.7
+
+# Performance profiling
+line-profiler==4.1.1
+memory-profiler==0.61.0

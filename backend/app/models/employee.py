@@ -57,9 +57,9 @@ class Employee(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # リレーション
-    punch_records = relationship("PunchRecord", back_populates="employee", cascade="all, delete-orphan")
-    daily_summaries = relationship("DailySummary", back_populates="employee", cascade="all, delete-orphan")
-    monthly_summaries = relationship("MonthlySummary", back_populates="employee", cascade="all, delete-orphan")
+    punch_records = relationship("PunchRecord", foreign_keys="PunchRecord.employee_id", back_populates="employee", cascade="all, delete-orphan")
+    daily_summaries = relationship("DailySummary", foreign_keys="DailySummary.employee_id", back_populates="employee", cascade="all, delete-orphan")
+    monthly_summaries = relationship("MonthlySummary", foreign_keys="MonthlySummary.employee_id", back_populates="employee", cascade="all, delete-orphan")
     cards = relationship("EmployeeCard", back_populates="employee", cascade="all, delete-orphan")
     user = relationship("User", back_populates="employee", uselist=False, cascade="all, delete-orphan")
     

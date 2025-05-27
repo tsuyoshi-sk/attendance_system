@@ -20,6 +20,7 @@ from backend.app.schemas import (
 from backend.app.services.employee_service import EmployeeService
 from backend.app.api.auth import require_permission, get_current_active_user
 from backend.app.models import User
+from backend.app.utils.auth_utils import get_current_user_or_bypass, require_permission_or_bypass
 from config.config import config
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ async def get_employees(
     is_active: Optional[bool] = Query(None, description="有効フラグフィルター"),
     department: Optional[str] = Query(None, description="部署フィルター"),
     search: Optional[str] = Query(None, description="検索文字列（名前、コード、メール）"),
-    current_user: User = Depends(require_permission("employee_manage")),
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> EmployeeListResponse:
     """
@@ -90,7 +91,7 @@ async def get_employees(
 @router.get("/employees/{employee_id}", response_model=EmployeeResponse)
 async def get_employee(
     employee_id: int,
-    current_user: User = Depends(require_permission("employee_manage")),
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> EmployeeResponse:
     """
@@ -117,7 +118,7 @@ async def get_employee(
 @router.post("/employees", response_model=EmployeeResponse, status_code=status.HTTP_201_CREATED)
 async def create_employee(
     employee_data: EmployeeCreate,
-    current_user: User = Depends(require_permission("employee_manage")),
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> EmployeeResponse:
     """
@@ -152,7 +153,7 @@ async def create_employee(
 async def update_employee(
     employee_id: int,
     employee_data: EmployeeUpdate,
-    current_user: User = Depends(require_permission("employee_manage")),
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> EmployeeResponse:
     """
@@ -186,6 +187,7 @@ async def update_employee(
 @router.delete("/employees/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_employee(
     employee_id: int,
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> Response:
     """
@@ -215,6 +217,7 @@ async def delete_employee(
 async def add_employee_card(
     employee_id: int,
     card_data: CardCreate,
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> CardResponse:
     """
@@ -244,6 +247,7 @@ async def add_employee_card(
 @router.get("/employees/{employee_id}/cards", response_model=CardListResponse)
 async def get_employee_cards(
     employee_id: int,
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> CardListResponse:
     """
@@ -284,6 +288,7 @@ async def get_employee_cards(
 @router.delete("/cards/{card_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_card(
     card_id: int,
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> Response:
     """
@@ -314,6 +319,7 @@ async def delete_card(
 async def register_card_legacy(
     employee_id: int,
     card_idm: str = Query(..., description="カードIDm（ハッシュ化前）"),
+    current_user = Depends(require_permission_or_bypass("employee_manage")),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """

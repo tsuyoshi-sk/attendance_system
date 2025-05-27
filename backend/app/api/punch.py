@@ -26,7 +26,7 @@ async def punch_health_check():
 @router.post("/", response_model=Dict[str, Any])
 async def create_punch(
     card_idm: str,
-    punch_type: PunchType,
+    punch_type: str,
     db: Session = Depends(get_db),
     device_type: Optional[str] = "pasori",
     note: Optional[str] = None,
@@ -48,10 +48,23 @@ async def create_punch(
         HTTPException: エラー発生時
     """
     try:
+        # Convert string to PunchType enum
+        try:
+            # Log the incoming punch_type for debugging
+            print(f"DEBUG: Received punch_type: {punch_type} (type: {type(punch_type)})")
+            punch_type_enum = PunchType(punch_type)
+            print(f"DEBUG: Converted to enum: {punch_type_enum} (value: {punch_type_enum.value})")
+        except ValueError as e:
+            print(f"DEBUG: ValueError during enum conversion: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid punch_type: {punch_type}. Valid values are: {[e.value for e in PunchType]}"
+            )
+        
         service = PunchService(db)
         result = await service.create_punch(
             card_idm=card_idm,
-            punch_type=punch_type,
+            punch_type=punch_type_enum,
             device_type=device_type,
             note=note
         )

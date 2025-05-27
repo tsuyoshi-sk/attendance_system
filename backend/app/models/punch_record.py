@@ -67,7 +67,7 @@ class PunchRecord(Base):
     
     # リレーション
     employee = relationship("Employee", foreign_keys=[employee_id], back_populates="punch_records")
-    modifier = relationship("Employee", foreign_keys=[modified_by], post_update=True)
+    modifier = relationship("Employee", foreign_keys=[modified_by])
     
     # インデックス
     __table_args__ = (
@@ -105,9 +105,9 @@ class PunchRecord(Base):
     def punch_type_display(self) -> str:
         """打刻種別の表示名を取得"""
         display_names = {
-            PunchType.IN: "出勤",
-            PunchType.OUT: "退勤",
-            PunchType.OUTSIDE: "外出",
-            PunchType.RETURN: "戻り",
+            "in": "出勤",
+            "out": "退勤",
+            "outside": "外出",
+            "return": "戻り",
         }
         return display_names.get(self.punch_type, self.punch_type)

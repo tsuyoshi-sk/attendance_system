@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#4facfe">
+    
+    <title>勤怠管理システム - NFC打刻</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- iOS向けアイコン -->
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- スタイルシート -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css">
+    
+    <!-- プリロード -->
+    <link rel="preconnect" href="ws://localhost:8000">
+    
+    <!-- セキュリティヘッダー -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' ws://localhost:8000 http://localhost:8000; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
+</head>
+<body>
+    <!-- アプリケーションコンテナ -->
+    <div id="app" class="app-container">
+        <!-- ヘッダー -->
+        <header class="app-header">
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-icon"></span>
+                <span class="status-text">接続中...</span>
+            </div>
+            <h1>勤怠管理システム</h1>
+            <div class="header-subtitle">NFC打刻 - iPhone Suica対応</div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main class="app-main">
+            <!-- ステータスカード -->
+            <div class="status-card" id="statusCard">
+                <div class="employee-info" id="employeeInfo" style="display: none;">
+                    <h2 class="employee-name"></h2>
+                    <p class="employee-code"></p>
+                </div>
+                
+                <div class="current-time" id="currentTime">
+                    <div class="time-display"></div>
+                    <div class="date-display"></div>
+                </div>
+            </div>
+
+            <!-- NFCスキャンセクション -->
+            <section class="nfc-section">
+                <div class="scan-container" id="scanContainer">
+                    <!-- スキャン待機状態 -->
+                    <div class="scan-ready" id="scanReady">
+                        <div class="nfc-icon-wrapper">
+                            <svg class="nfc-icon" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="2"/>
+                                <path d="M30 30 L70 70 M30 40 L60 70 M40 30 L70 60" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <button class="scan-button" id="scanButton" type="button">
+                            <span class="button-icon">📱</span>
+                            <span class="button-text">NFCスキャン開始</span>
+                        </button>
+                        <p class="scan-instruction">iPhone内蔵のSuicaで打刻できます</p>
+                    </div>
+
+                    <!-- スキャン中状態 -->
+                    <div class="scan-progress" id="scanProgress" style="display: none;">
+                        <div class="scanning-animation">
+                            <div class="pulse-ring"></div>
+                            <div class="pulse-ring"></div>
+                            <div class="pulse-ring"></div>
+                            <div class="scan-icon">📱</div>
+                        </div>
+                        <h3>NFCアプリ起動中...</h3>
+                        <p class="progress-message">Suicaをかざしてください</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                    </div>
+
+                    <!-- 成功状態 -->
+                    <div class="scan-success" id="scanSuccess" style="display: none;">
+                        <div class="success-icon">✅</div>
+                        <h3>打刻完了</h3>
+                        <p class="success-message"></p>
+                        <div class="punch-details">
+                            <div class="detail-item">
+                                <span class="detail-label">種別:</span>
+                                <span class="detail-value punch-type"></span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">時刻:</span>
+                                <span class="detail-value punch-time"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- エラー状態 -->
+                    <div class="scan-error" id="scanError" style="display: none;">
+                        <div class="error-icon">❌</div>
+                        <h3>エラー</h3>
+                        <p class="error-message"></p>
+                        <button class="retry-button" id="retryButton">
+                            再試行
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 打刻履歴 -->
+            <section class="history-section">
+                <h2>本日の打刻履歴</h2>
+                <div class="history-list" id="historyList">
+                    <p class="empty-message">本日の打刻はありません</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- フッター -->
+        <footer class="app-footer">
+            <div class="connection-quality" id="connectionQuality">
+                <span class="quality-indicator"></span>
+                <span class="quality-text">接続品質: --</span>
+            </div>
+            <div class="version-info">v1.0.0</div>
+        </footer>
+    </div>
+
+    <!-- オフライン通知 -->
+    <div class="offline-banner" id="offlineBanner" style="display: none;">
+        <span class="offline-icon">🔌</span>
+        <span class="offline-text">オフラインモード - 接続を待機中...</span>
+    </div>
+
+    <!-- ローディングオーバーレイ -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner"></div>
+        <p class="loading-text">処理中...</p>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/enhanced-nfc-client.js"></script>
+    <script src="js/ui-controller.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
