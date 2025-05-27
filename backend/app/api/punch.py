@@ -36,7 +36,7 @@ async def create_punch(
     
     Args:
         card_idm: カードのIDm（ハッシュ化前）
-        punch_type: 打刻種別
+        punch_type: 打刻種別 ("in", "out", "outside", "return")
         db: データベースセッション
         device_type: デバイス種別
         note: 備考
