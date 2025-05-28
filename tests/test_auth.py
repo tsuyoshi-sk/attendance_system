@@ -55,7 +55,7 @@ def test_admin_user(test_db):
     user = User(
         username="test_admin",
         password_hash="$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # password: test
-        role=UserRole.ADMIN
+        role=UserRole.ADMIN,
     )
     db.add(user)
     db.commit()
@@ -66,10 +66,9 @@ def test_admin_user(test_db):
 
 def test_login_success(client, test_admin_user):
     """正常ログインテスト"""
-    response = client.post("/api/v1/auth/login", data={
-        "username": "test_admin",
-        "password": "test"
-    })
+    response = client.post(
+        "/api/v1/auth/login", data={"username": "test_admin", "password": "test"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
@@ -80,35 +79,33 @@ def test_login_success(client, test_admin_user):
 
 def test_login_invalid_credentials(client, test_admin_user):
     """無効な認証情報でのログインテスト"""
-    response = client.post("/api/v1/auth/login", data={
-        "username": "test_admin",
-        "password": "wrong_password"
-    })
+    response = client.post(
+        "/api/v1/auth/login",
+        data={"username": "test_admin", "password": "wrong_password"},
+    )
     assert response.status_code == 401
 
 
 def test_login_user_not_found(client):
     """存在しないユーザーでのログインテスト"""
-    response = client.post("/api/v1/auth/login", data={
-        "username": "nonexistent",
-        "password": "password"
-    })
+    response = client.post(
+        "/api/v1/auth/login", data={"username": "nonexistent", "password": "password"}
+    )
     assert response.status_code == 401
 
 
 def test_get_current_user(client, test_admin_user):
     """現在のユーザー情報取得テスト"""
     # ログイン
-    login_response = client.post("/api/v1/auth/login", data={
-        "username": "test_admin",
-        "password": "test"
-    })
+    login_response = client.post(
+        "/api/v1/auth/login", data={"username": "test_admin", "password": "test"}
+    )
     token = login_response.json()["access_token"]
-    
+
     # ユーザー情報取得
-    response = client.get("/api/v1/auth/me", headers={
-        "Authorization": f"Bearer {token}"
-    })
+    response = client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == "test_admin"
@@ -123,25 +120,24 @@ def test_unauthorized_access(client):
 
 def test_invalid_token(client):
     """無効なトークンでのアクセステスト"""
-    response = client.get("/api/v1/auth/me", headers={
-        "Authorization": "Bearer invalid_token"
-    })
+    response = client.get(
+        "/api/v1/auth/me", headers={"Authorization": "Bearer invalid_token"}
+    )
     assert response.status_code == 401
 
 
 def test_token_verification(client, test_admin_user):
     """トークン検証テスト"""
     # ログイン
-    login_response = client.post("/api/v1/auth/login", data={
-        "username": "test_admin",
-        "password": "test"
-    })
+    login_response = client.post(
+        "/api/v1/auth/login", data={"username": "test_admin", "password": "test"}
+    )
     token = login_response.json()["access_token"]
-    
+
     # トークン検証
-    response = client.post("/api/v1/auth/verify-token", headers={
-        "Authorization": f"Bearer {token}"
-    })
+    response = client.post(
+        "/api/v1/auth/verify-token", headers={"Authorization": f"Bearer {token}"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["valid"] is True

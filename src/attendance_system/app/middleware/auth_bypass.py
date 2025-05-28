@@ -15,12 +15,12 @@ BYPASS_AUTH = os.getenv("BYPASS_AUTH", "false").lower() == "true"
 async def auth_bypass_middleware(request: Request) -> Optional[Dict[str, Any]]:
     """
     認証バイパスミドルウェア
-    
+
     BYPASS_AUTH環境変数がtrueの場合、テスト用の認証情報を返す
-    
+
     Args:
         request: HTTPリクエスト
-        
+
     Returns:
         Optional[Dict[str, Any]]: テスト用認証情報またはNone
     """
@@ -38,8 +38,8 @@ async def auth_bypass_middleware(request: Request) -> Optional[Dict[str, Any]]:
                 "employee:delete",
                 "report:read",
                 "report:write",
-                "system:admin"
-            ]
+                "system:admin",
+            ],
         }
     # 通常の認証処理
     return None

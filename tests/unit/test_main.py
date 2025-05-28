@@ -13,7 +13,7 @@ def test_root_endpoint():
     """ルートエンドポイントのテスト"""
     client = TestClient(app)
     response = client.get("/")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "name" in data
@@ -27,7 +27,7 @@ def test_health_endpoint():
     """ヘルスチェックエンドポイントのテスト"""
     client = TestClient(app)
     response = client.get("/health")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "status" in data
@@ -41,7 +41,7 @@ def test_info_endpoint():
     """システム情報エンドポイントのテスト"""
     client = TestClient(app)
     response = client.get("/info")
-    
+
     assert response.status_code == 200
     data = response.json()
     assert "app" in data

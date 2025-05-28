@@ -17,21 +17,21 @@ from ...config.config import settings
 def setup_logging():
     """
     構造化ログの設定
-    
+
     本番環境ではJSON形式、開発環境では人間が読みやすい形式でログを出力
     """
-    
+
     # ログディレクトリの作成
     log_dir = Path(settings.LOG_DIR)
     log_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # 基本的なロギング設定
     logging.basicConfig(
         format="%(message)s",
         stream=None,
         level=getattr(logging, settings.LOG_LEVEL.upper()),
     )
-    
+
     # structlogプロセッサーの設定
     processors = [
         structlog.contextvars.merge_contextvars,
@@ -41,13 +41,13 @@ def setup_logging():
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
     ]
-    
+
     # 環境に応じたレンダラーの選択
     if settings.ENVIRONMENT == "development":
         processors.append(structlog.dev.ConsoleRenderer())
     else:
         processors.append(structlog.processors.JSONRenderer())
-    
+
     # structlogの設定
     structlog.configure(
         processors=processors,
@@ -57,19 +57,19 @@ def setup_logging():
         logger_factory=structlog.WriteLoggerFactory(),
         cache_logger_on_first_use=True,
     )
-    
+
     # 専用ロガーの設定
     setup_specialized_loggers()
 
 
 def setup_specialized_loggers():
     """専用ロガーの設定"""
-    
+
     log_dir = Path(settings.LOG_DIR)
-    
+
     # ファイルハンドラーの設定
     handlers = {}
-    
+
     # アプリケーションログ
     handlers["app_file"] = {
         "class": "logging.handlers.RotatingFileHandler",
@@ -78,7 +78,7 @@ def setup_specialized_loggers():
         "backupCount": 5,
         "formatter": "json" if settings.ENVIRONMENT == "production" else "detailed",
     }
-    
+
     # セキュリティ監査ログ
     handlers["security_file"] = {
         "class": "logging.handlers.RotatingFileHandler",
@@ -87,7 +87,7 @@ def setup_specialized_loggers():
         "backupCount": 10,  # セキュリティログは長期保存
         "formatter": "json",
     }
-    
+
     # パフォーマンスログ
     handlers["performance_file"] = {
         "class": "logging.handlers.RotatingFileHandler",
@@ -96,7 +96,7 @@ def setup_specialized_loggers():
         "backupCount": 3,
         "formatter": "json",
     }
-    
+
     # エラーログ
     handlers["error_file"] = {
         "class": "logging.handlers.RotatingFileHandler",
@@ -105,27 +105,25 @@ def setup_specialized_loggers():
         "backupCount": 5,
         "formatter": "json",
     }
-    
+
     # コンソールハンドラー
     handlers["console"] = {
         "class": "logging.StreamHandler",
         "formatter": "simple",
     }
-    
+
     # フォーマッターの設定
     formatters = {
-        "simple": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        },
+        "simple": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"},
         "detailed": {
             "format": "%(asctime)s - %(name)s - %(levelname)s - %(module)s - %(funcName)s - %(message)s"
         },
         "json": {
             "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "format": "%(asctime)s %(name)s %(levelname)s %(module)s %(funcName)s %(message)s"
-        }
+            "format": "%(asctime)s %(name)s %(levelname)s %(module)s %(funcName)s %(message)s",
+        },
     }
-    
+
     # ロガーの設定
     loggers = {
         "attendance.app": {
@@ -149,7 +147,7 @@ def setup_specialized_loggers():
             "propagate": False,
         },
     }
-    
+
     # ロギング設定を適用
     config = {
         "version": 1,
@@ -158,17 +156,17 @@ def setup_specialized_loggers():
         "handlers": handlers,
         "loggers": loggers,
     }
-    
+
     logging.config.dictConfig(config)
 
 
 def get_logger(name: str = "attendance.app") -> structlog.BoundLogger:
     """
     構造化ロガーを取得
-    
+
     Args:
         name: ロガー名
-        
+
     Returns:
         構造化ロガー
     """
@@ -192,11 +190,13 @@ def get_error_logger() -> structlog.BoundLogger:
 
 class SecurityAuditLogger:
     """セキュリティ監査ログ専用クラス"""
-    
+
     def __init__(self):
         self.logger = get_security_logger()
-    
-    def log_login_attempt(self, username: str, success: bool, ip_address: str, user_agent: str = None):
+
+    def log_login_attempt(
+        self, username: str, success: bool, ip_address: str, user_agent: str = None
+    ):
         """ログイン試行をログ"""
         self.logger.info(
             "login_attempt",
@@ -204,10 +204,12 @@ class SecurityAuditLogger:
             success=success,
             ip_address=ip_address,
             user_agent=user_agent,
-            event_type="authentication"
+            event_type="authentication",
         )
-    
-    def log_punch_access(self, employee_id: int, card_id: str, success: bool, ip_address: str):
+
+    def log_punch_access(
+        self, employee_id: int, card_id: str, success: bool, ip_address: str
+    ):
         """打刻アクセスをログ"""
         self.logger.info(
             "punch_access",
@@ -215,10 +217,12 @@ class SecurityAuditLogger:
             card_id_hash=hash(card_id),  # 実際のカードIDはハッシュ化
             success=success,
             ip_address=ip_address,
-            event_type="punch"
+            event_type="punch",
         )
-    
-    def log_admin_action(self, admin_user: str, action: str, target: str, success: bool):
+
+    def log_admin_action(
+        self, admin_user: str, action: str, target: str, success: bool
+    ):
         """管理者操作をログ"""
         self.logger.info(
             "admin_action",
@@ -226,9 +230,9 @@ class SecurityAuditLogger:
             action=action,
             target=target,
             success=success,
-            event_type="admin"
+            event_type="admin",
         )
-    
+
     def log_data_access(self, user: str, resource: str, action: str, success: bool):
         """データアクセスをログ"""
         self.logger.info(
@@ -237,17 +241,19 @@ class SecurityAuditLogger:
             resource=resource,
             action=action,
             success=success,
-            event_type="data"
+            event_type="data",
         )
 
 
 class PerformanceLogger:
     """パフォーマンス監視ログ専用クラス"""
-    
+
     def __init__(self):
         self.logger = get_performance_logger()
-    
-    def log_request_timing(self, endpoint: str, method: str, duration_ms: float, status_code: int):
+
+    def log_request_timing(
+        self, endpoint: str, method: str, duration_ms: float, status_code: int
+    ):
         """リクエスト処理時間をログ"""
         self.logger.info(
             "request_timing",
@@ -255,19 +261,21 @@ class PerformanceLogger:
             method=method,
             duration_ms=duration_ms,
             status_code=status_code,
-            metric_type="timing"
+            metric_type="timing",
         )
-    
-    def log_database_query(self, query_type: str, duration_ms: float, record_count: int = None):
+
+    def log_database_query(
+        self, query_type: str, duration_ms: float, record_count: int = None
+    ):
         """データベースクエリ性能をログ"""
         self.logger.info(
             "database_query",
             query_type=query_type,
             duration_ms=duration_ms,
             record_count=record_count,
-            metric_type="database"
+            metric_type="database",
         )
-    
+
     def log_cache_operation(self, operation: str, hit: bool, duration_ms: float = None):
         """キャッシュ操作をログ"""
         self.logger.info(
@@ -275,7 +283,7 @@ class PerformanceLogger:
             operation=operation,
             hit=hit,
             duration_ms=duration_ms,
-            metric_type="cache"
+            metric_type="cache",
         )
 
 

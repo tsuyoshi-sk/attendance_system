@@ -14,7 +14,9 @@ import os
 from pathlib import Path
 
 # プロジェクトルートをPythonパスに追加
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from config.config import config
 
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 def get_database_url():
     """データベースURLの安全な取得"""
     db_url = config.get_database_url()
-    
+
     # SQLiteの場合、ディレクトリ確保
     if db_url.startswith("sqlite:///"):
         db_path = db_url.replace("sqlite:///", "")
@@ -32,7 +34,7 @@ def get_database_url():
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
             logger.info(f"Created database directory: {db_dir}")
-    
+
     return db_url
 
 
@@ -40,7 +42,9 @@ def get_database_url():
 engine = create_engine(
     get_database_url(),
     echo=config.DATABASE_ECHO,
-    connect_args={"check_same_thread": False} if "sqlite" in config.DATABASE_URL else {}
+    connect_args={"check_same_thread": False}
+    if "sqlite" in config.DATABASE_URL
+    else {},
 )
 
 # セッションファクトリの作成
@@ -53,7 +57,7 @@ Base = declarative_base()
 def get_db() -> Generator[Session, None, None]:
     """
     データベースセッションを取得する依存性注入関数
-    
+
     Yields:
         Session: データベースセッション
     """
@@ -76,10 +80,10 @@ def init_db() -> None:
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
             logger.info(f"Created database directory: {db_dir}")
-    
+
     # 全てのモデルをインポート（Baseのメタデータに登録するため）
     from backend.app.models import employee, punch_record, summary
-    
+
     Base.metadata.create_all(bind=engine)
     logger.info("Database initialization completed")
 

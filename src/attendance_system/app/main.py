@@ -21,11 +21,13 @@ from attendance_system.app.middleware.security import add_security_middleware
 
 # ログ設定
 logging.basicConfig(
-    level=getattr(logging, getattr(settings, 'LOG_LEVEL', 'INFO').upper()),
-    format=getattr(settings, 'LOG_FORMAT', '%(asctime)s - %(name)s - %(levelname)s - %(message)s'),
+    level=getattr(logging, getattr(settings, "LOG_LEVEL", "INFO").upper()),
+    format=getattr(
+        settings, "LOG_FORMAT", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    ),
     handlers=[
         logging.StreamHandler(),
-    ]
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -34,21 +36,21 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """
     アプリケーションのライフサイクル管理
-    
+
     起動時と終了時の処理を定義します。
     """
     # 起動時の処理
     logger.info(f"{settings.APP_NAME} v{settings.APP_VERSION} 起動中...")
-    
+
     # 設定の検証
     try:
-        if hasattr(settings, 'validate'):
+        if hasattr(settings, "validate"):
             settings.validate()
         logger.info("設定の検証が完了しました")
     except Exception as e:
         logger.error(f"設定エラー: {e}")
         raise
-    
+
     # データベースの初期化
     try:
         init_db()
@@ -56,11 +58,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"データベース初期化エラー: {e}")
         raise
-    
+
     logger.info("アプリケーションの起動が完了しました")
-    
+
     yield
-    
+
     # 終了時の処理
     logger.info("アプリケーションを終了しています...")
 
@@ -90,7 +92,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
                 "message": exc.detail,
                 "status_code": exc.status_code,
             }
-        }
+        },
     )
 
 
@@ -105,7 +107,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                 "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
                 "details": exc.errors(),
             }
-        }
+        },
     )
 
 
@@ -120,7 +122,7 @@ async def general_exception_handler(request: Request, exc: Exception):
                 "message": "内部サーバーエラーが発生しました",
                 "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
             }
-        }
+        },
     )
 
 
@@ -129,14 +131,14 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def root() -> Dict[str, str]:
     """
     APIルートエンドポイント
-    
+
     Returns:
         Dict[str, str]: アプリケーション情報
     """
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
-        "status": "running"
+        "status": "running",
     }
 
 
@@ -145,7 +147,7 @@ async def root() -> Dict[str, str]:
 async def health_check() -> Dict[str, Any]:
     """
     ヘルスチェックエンドポイント
-    
+
     Returns:
         Dict[str, Any]: システムの稼働状況
     """
@@ -154,7 +156,9 @@ async def health_check() -> Dict[str, Any]:
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "database": "connected",
-        "pasori": "ready" if not getattr(settings, 'PASORI_MOCK_MODE', True) else "mock_mode"
+        "pasori": "ready"
+        if not getattr(settings, "PASORI_MOCK_MODE", True)
+        else "mock_mode",
     }
 
 
@@ -163,14 +167,15 @@ async def health_check() -> Dict[str, Any]:
 async def integrated_health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     統合ヘルスチェックエンドポイント
-    
+
     全サブシステムの健全性を詳細にチェックします。
-    
+
     Returns:
         Dict[str, Any]: 統合システムの詳細な稼働状況
     """
     try:
         from attendance_system.app.health_check import get_integrated_health_status
+
         return await get_integrated_health_status(db)
     except Exception as e:
         logger.error(f"統合ヘルスチェックエラー: {e}")
@@ -182,7 +187,7 @@ async def integrated_health_check(db: Session = Depends(get_db)) -> Dict[str, An
 async def get_info() -> Dict[str, Any]:
     """
     システム詳細情報エンドポイント
-    
+
     Returns:
         Dict[str, Any]: システムの詳細情報
     """
@@ -193,8 +198,10 @@ async def get_info() -> Dict[str, Any]:
             "debug": settings.DEBUG,
         },
         "features": {
-            "slack_notification": getattr(settings, 'is_slack_enabled', lambda: False)(),
-            "pasori_mock_mode": getattr(settings, 'is_mock_mode', lambda: True)(),
+            "slack_notification": getattr(
+                settings, "is_slack_enabled", lambda: False
+            )(),
+            "pasori_mock_mode": getattr(settings, "is_mock_mode", lambda: True)(),
         },
     }
 
@@ -202,35 +209,25 @@ async def get_info() -> Dict[str, Any]:
 # APIルーターの登録（エラーハンドリング付き）
 try:
     from attendance_system.app.api import auth, punch, admin, reports, analytics
-    
+
     app.include_router(
-        auth.router,
-        prefix=f"{settings.API_V1_PREFIX}/auth",
-        tags=["認証"]
+        auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["認証"]
     )
-    
+
     app.include_router(
-        punch.router,
-        prefix=f"{settings.API_V1_PREFIX}/punch",
-        tags=["打刻"]
+        punch.router, prefix=f"{settings.API_V1_PREFIX}/punch", tags=["打刻"]
     )
-    
+
     app.include_router(
-        admin.router,
-        prefix=f"{settings.API_V1_PREFIX}/admin",
-        tags=["管理"]
+        admin.router, prefix=f"{settings.API_V1_PREFIX}/admin", tags=["管理"]
     )
-    
+
     app.include_router(
-        reports.router,
-        prefix=f"{settings.API_V1_PREFIX}/reports",
-        tags=["レポート"]
+        reports.router, prefix=f"{settings.API_V1_PREFIX}/reports", tags=["レポート"]
     )
-    
+
     app.include_router(
-        analytics.router,
-        prefix=f"{settings.API_V1_PREFIX}/analytics",
-        tags=["分析"]
+        analytics.router, prefix=f"{settings.API_V1_PREFIX}/analytics", tags=["分析"]
     )
 except ImportError as e:
     logger.warning(f"一部のAPIルーターが利用できません: {e}")
@@ -239,13 +236,13 @@ except ImportError as e:
 def main():
     """CLIエントリーポイント"""
     import uvicorn
-    
+
     uvicorn.run(
         "attendance_system.app.main:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.DEBUG,
-        log_level=getattr(settings, 'LOG_LEVEL', 'INFO').lower()
+        log_level=getattr(settings, "LOG_LEVEL", "INFO").lower(),
     )
 
 

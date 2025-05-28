@@ -30,14 +30,22 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install flake8 mypy black isort safety bandit
+          pip install -r requirements.txt
+      
+      - name: Set environment variables
+        run: |
+          echo "SECRET_KEY=test-secret-key-64-characters-long-for-comprehensive-testing-ok-very-long" >> $GITHUB_ENV
+          echo "JWT_SECRET_KEY=test-jwt-secret-64-characters-long-for-comprehensive-testing-ok-long" >> $GITHUB_ENV
+          echo "IDM_HASH_SECRET=test-idm-hash-secret-64-characters-long-for-testing-purposes-ok" >> $GITHUB_ENV
+          echo "PYTHONPATH=src" >> $GITHUB_ENV
       
       - name: Lint with flake8
         run: |
-          flake8 backend/ --max-line-length=88 --extend-ignore=E203,W503 --exclude=migrations,__pycache__
+          flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503 --exclude=migrations,__pycache__
       
       - name: Type check with mypy
         run: |
-          mypy backend/ --ignore-missing-imports --no-strict-optional
+          PYTHONPATH=src mypy src/ --ignore-missing-imports --no-strict-optional
       
       - name: Check security vulnerabilities with safety
         run: |
@@ -45,15 +53,15 @@ jobs:
       
       - name: Security scan with bandit
         run: |
-          bandit -r backend/ -f json -o bandit-report.json -ll || true
+          bandit -r src/ -f json -o bandit-report.json -ll || true
       
       - name: Check code formatting with black
         run: |
-          black --check backend/
+          black --check src/ tests/
       
       - name: Check import sorting with isort
         run: |
-          isort --check-only backend/
+          isort --check-only src/ tests/
       
       - name: Upload security reports
         uses: actions/upload-artifact@v4

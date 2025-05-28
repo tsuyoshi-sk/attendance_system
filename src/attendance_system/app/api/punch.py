@@ -36,17 +36,17 @@ async def create_punch(
 ) -> Dict[str, Any]:
     """
     打刻を記録する
-    
+
     Args:
         card_idm: カードのIDm（ハッシュ化前）
         punch_type: 打刻種別 ("in", "out", "outside", "return")
         db: データベースセッション
         device_type: デバイス種別
         note: 備考
-    
+
     Returns:
         Dict[str, Any]: 打刻結果
-    
+
     Raises:
         HTTPException: エラー発生時
     """
@@ -54,14 +54,16 @@ async def create_punch(
         # Convert string to PunchType enum
         logger.debug(f"Received punch_type: {punch_type} (type: {type(punch_type)})")
         punch_type_enum = PunchType(punch_type)
-        logger.debug(f"Converted to enum: {punch_type_enum} (value: {punch_type_enum.value})")
-        
+        logger.debug(
+            f"Converted to enum: {punch_type_enum} (value: {punch_type_enum.value})"
+        )
+
         service = PunchService(db)
         result = await service.create_punch(
             card_idm=card_idm,
             punch_type=punch_type_enum,
             device_type=device_type,
-            note=note
+            note=note,
         )
         return result
     except ValueError as e:
@@ -70,33 +72,29 @@ async def create_punch(
         if "is not a valid PunchType" in str(e):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid punch_type: {punch_type}. Valid values are: {[e.value for e in PunchType]}"
+                detail=f"Invalid punch_type: {punch_type}. Valid values are: {[e.value for e in PunchType]}",
             )
         else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         logger.error(f"Unexpected error during punch creation: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"打刻処理中にエラーが発生しました: {str(e)}"
+            detail=f"打刻処理中にエラーが発生しました: {str(e)}",
         )
 
 
 @router.get("/status/{employee_id}", response_model=Dict[str, Any])
 async def get_punch_status(
-    employee_id: int,
-    db: Session = Depends(get_db)
+    employee_id: int, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     従業員の現在の打刻状況を取得
-    
+
     Args:
         employee_id: 従業員ID
         db: データベースセッション
-    
+
     Returns:
         Dict[str, Any]: 打刻状況
     """
@@ -105,14 +103,11 @@ async def get_punch_status(
         status = await service.get_employee_status(employee_id)
         return status
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"状況取得中にエラーが発生しました: {str(e)}"
+            detail=f"状況取得中にエラーが発生しました: {str(e)}",
         )
 
 
@@ -121,35 +116,30 @@ async def get_punch_history(
     employee_id: int,
     date: Optional[str] = None,
     limit: int = 10,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     従業員の打刻履歴を取得
-    
+
     Args:
         employee_id: 従業員ID
         date: 対象日（YYYY-MM-DD形式）
         limit: 取得件数上限
         db: データベースセッション
-    
+
     Returns:
         Dict[str, Any]: 打刻履歴
     """
     try:
         service = PunchService(db)
         history = await service.get_punch_history(
-            employee_id=employee_id,
-            date=date,
-            limit=limit
+            employee_id=employee_id, date=date, limit=limit
         )
         return history
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"履歴取得中にエラーが発生しました: {str(e)}"
+            detail=f"履歴取得中にエラーが発生しました: {str(e)}",
         )

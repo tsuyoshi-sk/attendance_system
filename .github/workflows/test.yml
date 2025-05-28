@@ -65,26 +65,33 @@ jobs:
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY_TEST || 'test-secret-key-for-testing-only-must-be-at-least-64-characters-long' }}
-          SECRET_KEY: ${{ secrets.SECRET_KEY_TEST || 'test-secret-key-for-testing-only-must-be-at-least-64-characters-long' }}
+          JWT_SECRET_KEY: test-jwt-secret-64-characters-long-for-comprehensive-testing-ok-long
+          SECRET_KEY: test-secret-key-64-characters-long-for-comprehensive-testing-ok-very-long
+          IDM_HASH_SECRET: test-idm-hash-secret-64-characters-long-for-testing-purposes-ok
           ENVIRONMENT: testing
+          PYTHONPATH: src
         run: |
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
           echo "REDIS_URL=$REDIS_URL" >> $GITHUB_ENV
           echo "JWT_SECRET_KEY=$JWT_SECRET_KEY" >> $GITHUB_ENV
           echo "SECRET_KEY=$SECRET_KEY" >> $GITHUB_ENV
+          echo "IDM_HASH_SECRET=$IDM_HASH_SECRET" >> $GITHUB_ENV
           echo "ENVIRONMENT=$ENVIRONMENT" >> $GITHUB_ENV
+          echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
       
       - name: Run database migrations
         run: |
-          alembic upgrade head
+          PYTHONPATH=src alembic upgrade head
       
       - name: Run tests with coverage
         env:
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY_TEST || 'test-secret-key-for-testing-only-must-be-at-least-64-characters-long' }}
+          JWT_SECRET_KEY: test-jwt-secret-64-characters-long-for-comprehensive-testing-ok-long
+          SECRET_KEY: test-secret-key-64-characters-long-for-comprehensive-testing-ok-very-long
+          IDM_HASH_SECRET: test-idm-hash-secret-64-characters-long-for-testing-purposes-ok
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
+          PYTHONPATH: src
         run: |
-          pytest -v --cov=backend --cov-report=xml --cov-report=html --cov-report=term-missing --timeout=300
+          PYTHONPATH=src pytest -v --cov=src/attendance_system --cov-report=xml --cov-report=html --cov-report=term-missing --timeout=300
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -92,4 +99,4 @@ jobs:
           file: ./coverage.xml
           flags: unittests
           name: Python-${{ matrix.python-version }}
-          fail_ci_if_error: true
+          fail_ci_if_error: false

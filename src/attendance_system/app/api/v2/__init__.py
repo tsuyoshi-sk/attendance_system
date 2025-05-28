@@ -14,7 +14,7 @@ v2_router = APIRouter(prefix="/api/v2", tags=["API v2"])
 async def v2_root():
     """
     API v2ルート
-    
+
     将来の拡張機能用エンドポイント
     """
     return {
@@ -24,9 +24,9 @@ async def v2_root():
             "Advanced Analytics",
             "Real-time Notifications",
             "Mobile App Integration",
-            "AI-powered Insights"
+            "AI-powered Insights",
         ],
-        "status": "development"
+        "status": "development",
     }
 
 
@@ -40,27 +40,27 @@ async def get_v2_features():
             "graphql": {
                 "status": "planned",
                 "description": "GraphQL APIサポート",
-                "estimated_release": "2024-Q2"
+                "estimated_release": "2024-Q2",
             },
             "realtime": {
-                "status": "planned", 
+                "status": "planned",
                 "description": "リアルタイム通知",
-                "estimated_release": "2024-Q2"
+                "estimated_release": "2024-Q2",
             },
             "mobile_api": {
                 "status": "planned",
                 "description": "モバイルアプリ最適化API",
-                "estimated_release": "2024-Q3"
+                "estimated_release": "2024-Q3",
             },
             "ai_insights": {
                 "status": "planned",
                 "description": "AI分析機能",
-                "estimated_release": "2024-Q4"
+                "estimated_release": "2024-Q4",
             },
             "advanced_auth": {
                 "status": "planned",
                 "description": "SSO・SAML認証",
-                "estimated_release": "2024-Q3"
-            }
+                "estimated_release": "2024-Q3",
+            },
         }
     }
