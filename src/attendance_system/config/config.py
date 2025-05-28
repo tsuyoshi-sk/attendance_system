@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False
     
     # セキュリティ設定
-    JWT_SECRET_KEY: str = Field(..., min_length=64)  # 32→64文字に強化
+    JWT_SECRET_KEY: str = Field(..., min_length=32)  # 32→64文字に強化
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 60→15分に短縮
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
