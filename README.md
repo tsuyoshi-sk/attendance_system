@@ -1,143 +1,215 @@
-# 勤怠管理システム
+# 勤怠管理システム v2.0 🚀
 
 [![Tests](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/test.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions)
 [![Code Quality](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/quality.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions)
-[![CI/CD Pipeline](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/ci.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/ci.yml)
+[![Deploy](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/deploy.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions)
 [![codecov](https://codecov.io/gh/tsuyoshi-sk/attendance_system/branch/main/graph/badge.svg)](https://codecov.io/gh/tsuyoshi-sk/attendance_system)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-PaSoRi RC-S300を使用したFeliCaベースの勤怠管理システム
+**世界最高レベルのエンタープライズ級iPhone Suica対応勤怠管理システム**
 
-## 概要
+PaSoRi RC-S300、iPhone Suica、Android NFC対応の次世代勤怠管理システム
 
-このシステムは、ソニーのPaSoRi RC-S300リーダーを使用して、FeliCaカード（Suica、PASMO、社員証など）で従業員の勤怠を管理するシステムです。
+## 🚀 v2.0 新機能
 
-### 主な機能
+### 🔥 主要機能
+- 🚪 **多様な打刻方式**: PaSoRi・iPhone Suica・Android NFC・QRコード対応
+- 👥 **無制限従業員管理**: 6名制限撤廃、エンタープライズ対応
+- 🏢 **部署・チーム管理**: 階層的組織管理
+- 🔐 **本格認証システム**: JWT・管理者・マネージャー・従業員権限
+- 📊 **高度分析機能**: リアルタイム分析・予測機能
+- 🌐 **マルチテナント基盤**: 複数組織対応準備済み
 
-- 🚪 **打刻機能**: 出勤・退勤・外出・戻りの4種類の打刻
-- 👥 **従業員管理**: 最大6名の従業員情報管理
-- 📊 **レポート機能**: 日次・月次の勤怠レポート自動生成
-- 💾 **データ管理**: SQLiteによるローカルデータ保存
-- 📡 **オフライン対応**: ネットワーク障害時のローカルキュー機能
-- 🔔 **通知機能**: Slack連携による打刻通知
-- 📁 **エクスポート**: CSV形式での勤怠データ出力
+### ⚡ エンタープライズ機能
+- 🏗️ **Clean Architecture**: ドメイン駆動設計
+- 📈 **スケーラビリティ**: 数千名規模対応
+- 🔒 **最高セキュリティ**: 64文字JWT・監査ログ
+- 🚀 **自動CI/CD**: ステージング→本番デプロイ
+- 📱 **PWA対応**: オフライン動作可能
+- 🔍 **包括的監視**: パフォーマンス・セキュリティ監視
 
-## 動作環境
+## 📊 システム完成度
 
-- Python 3.8以上
-- PaSoRi RC-S300（USB接続）
-- 対応OS: Windows 10/11, macOS, Linux
+| 項目 | v1.0 | v2.0 |
+|------|------|------|
+| セキュリティ | ★★★☆☆ | ★★★★★ |
+| スケーラビリティ | ★★☆☆☆ | ★★★★★ |
+| 運用性 | ★★★☆☆ | ★★★★★ |
+| 拡張性 | ★★☆☆☆ | ★★★★★ |
+| 企業適用性 | ★★★☆☆ | ★★★★★ |
 
-## クイックスタート
+## 🔒 セキュリティ
+
+### 認証・セキュリティ機能
+- **JWT認証**: 64文字以上の強力なシークレットキーを強制
+- **安全なシリアライゼーション**: pickleの代わりにorjsonを使用
+- **環境変数管理**: pydanticによる設定検証
+- **セキュリティスキャン**: banditとsafetyによる脆弱性チェック
+- **機密ファイル保護**: .gitignoreと.gitattributesで完全保護
+- **カードIDハッシュ化**: SHA-256でハッシュ化して保存
+- **SQL インジェクション対策**: SQLAlchemy ORM使用
+- **セキュリティヘッダー**: XSS、CSRF、clickjacking対策
+- **監査ログ**: 認証・操作・データアクセスの完全追跡
+
+### CI/CDパイプライン
+- **自動テスト**: Python 3.9-3.12で並列実行
+- **コード品質**: flake8, mypy, black, isortによる自動チェック
+- **カバレッジ**: 80%以上のテストカバレッジを強制
+- **マルチDB対応**: PostgreSQLとSQLiteでのテスト実行
+- **セキュリティ監査**: 定期的な脆弱性スキャン
+- **自動デプロイ**: ステージング→本番の自動化
+
+## 🏗️ アーキテクチャ
+
+### Clean Architecture採用
+```
+attendance_system/
+├── backend/
+│   ├── domain/           # ドメイン層（ビジネスロジック）
+│   ├── usecase/          # ユースケース層（アプリケーション）
+│   ├── app/              # インフラ層（API・DB・外部連携）
+│   └── auth/             # 認証・認可システム
+├── pwa/                  # Progressive Web App
+├── hardware/             # ハードウェア制御
+└── docs/                 # ドキュメント
+```
+
+### スケーラビリティ設計
+- **ドメイン駆動設計**: ビジネスロジックの分離
+- **拡張可能認証**: Card・NFC・QR・生体認証対応
+- **API バージョニング**: v1・v2対応
+- **マルチテナント基盤**: 複数組織対応準備
+- **非同期処理**: 高性能・高並行性
+
+## 🛠️ 動作環境
+
+- **Python**: 3.9以上
+- **データベース**: SQLite・PostgreSQL
+- **キャッシュ**: Redis
+- **ハードウェア**: PaSoRi RC-S300（オプション）
+- **対応OS**: Windows 10/11, macOS, Linux
+- **対応デバイス**: iPhone（Suica）・Android（NFC）
+
+## ⚡ クイックスタート
 
 ### 1. リポジトリのクローン
-
 ```bash
 git clone https://github.com/tsuyoshi-sk/attendance_system.git
 cd attendance_system
 ```
 
-### 2. 自動セットアップ
-
+### 2. Poetry環境セットアップ
 ```bash
-# セットアップスクリプトを実行
-bash setup.sh
+# Poetryインストール（未インストールの場合）
+curl -sSL https://install.python-poetry.org | python3 -
 
-# または
-make setup
+# 依存関係インストール
+poetry install
+
+# 仮想環境アクティベート
+poetry shell
 ```
 
 ### 3. 環境設定
-
-`.env.example`を`.env`にコピーして、必要な設定を行います：
-
 ```bash
-cp config/.env.example .env
+# 環境変数ファイル作成
+cp .env.example .env
+
+# 重要: 本番環境では以下を必ず変更
+JWT_SECRET_KEY=your-64-character-secret-key-here-please-change-in-production
+SECRET_KEY=your-64-character-app-secret-key-here-please-change-in-production
 ```
 
-重要な設定項目：
-- `SECRET_KEY`: 本番環境では必ず変更してください
-- `IDM_HASH_SECRET`: カードIDのハッシュ化に使用
-- `SLACK_WEBHOOK_URL`: Slack通知を使用する場合に設定
-
-### 4. アプリケーション起動
-
+### 4. データベース初期化
 ```bash
-# 本番モード
-make run
+# マイグレーション実行
+alembic upgrade head
 
-# 開発モード（自動リロード）
-make dev
+# 初期データ作成（オプション）
+python scripts/seed_test_data.py
 ```
 
-### 5. APIドキュメント確認
-
-ブラウザで以下にアクセス：
-- http://localhost:8000/docs - Swagger UI
-- http://localhost:8000/redoc - ReDoc
-
-## 使い方
-
-### PaSoRiテスト
-
+### 5. アプリケーション起動
 ```bash
-# ハードウェアテストツールを実行
-make hardware-test
+# 開発モード
+poetry run attendance-server
 
 # または
-python hardware/pasori_test.py
+uvicorn backend.app.main:app --reload
+
+# 本番モード
+uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
-### 従業員登録
-
-1. APIドキュメント（/docs）にアクセス
-2. `/api/v1/admin/employees`で従業員を作成
-3. `/api/v1/admin/employees/{id}/card`でカードを登録
-
-### 打刻
-
-カードをPaSoRiにかざすと自動的に打刻されます。
-
-## 開発
-
-### プロジェクト構成
-
+### 6. PWA起動（オプション）
+```bash
+cd pwa
+npm install
+npm run dev
 ```
-attendance_system/
-├── backend/          # バックエンドアプリケーション
-│   ├── app/         # FastAPIアプリケーション
-│   │   ├── api/     # APIエンドポイント
-│   │   ├── models/  # データベースモデル
-│   │   └── services/# ビジネスロジック
-│   └── migrations/  # データベースマイグレーション
-├── hardware/        # PaSoRi関連
-├── config/          # 設定ファイル
-├── tests/           # テストコード
-└── docs/            # ドキュメント
+
+## 📱 使い方
+
+### 基本操作
+
+#### 1. 管理者アカウント作成
+```bash
+python scripts/create_admin.py
 ```
+
+#### 2. 従業員登録
+- ブラウザで http://localhost:8000/docs にアクセス
+- `/api/v1/admin/employees` で従業員を作成
+- `/api/v1/admin/employees/{id}/card` でカードを登録
+
+#### 3. 打刻方法
+- **PaSoRi**: カードをPaSoRiにかざす
+- **iPhone**: Suicaアプリでタップ
+- **Android**: NFCでタップ
+- **PWA**: ブラウザから手動打刻
+
+#### 4. レポート確認
+- 日次レポート: `/api/v1/reports/daily/{date}`
+- 月次レポート: `/api/v1/reports/monthly/{month}`
+
+### 高度な機能
+
+#### API バージョニング
+- **v1**: 現在の安定版 `/api/v1/`
+- **v2**: 将来の拡張版 `/api/v2/`（開発中）
+
+#### 認証プロバイダー
+```python
+# 複数認証方式対応
+providers = {
+    "card": CardAuthProvider(),      # PaSoRi
+    "nfc": NFCAuthProvider(),        # iPhone/Android
+    "qr": QRAuthProvider(),          # QRコード
+    "biometric": BiometricProvider() # 生体認証（将来）
+}
+```
+
+## 🔧 開発
 
 ### 開発コマンド
-
 ```bash
 # テスト実行
-make test
+pytest
 
 # カバレッジ付きテスト
-make test-cov
+pytest --cov=backend --cov-report=html
 
-# コードフォーマット
-make format
-
-# リント
-make lint
-
-# 型チェック
-make check
+# コード品質チェック
+black .                    # フォーマット
+isort .                    # インポート整理
+flake8 .                   # リント
+mypy backend/              # 型チェック
 
 # セキュリティチェック
-make security
+bandit -r backend/         # 脆弱性スキャン
+safety check               # 依存関係チェック
 
 # 品質チェック（全チェック実行）
 make quality
@@ -146,76 +218,83 @@ make quality
 make ci
 ```
 
-### コーディング規約
-
-- PEP 8準拠
-- Black formatterを使用
-- 型ヒント推奨
-- Docstring必須（Google style）
-
-## API仕様
-
-### 主要エンドポイント
-
-#### 打刻
-- `POST /api/v1/punch/` - 打刻記録
-- `GET /api/v1/punch/status/{employee_id}` - 打刻状況確認
-- `GET /api/v1/punch/history/{employee_id}` - 打刻履歴
-
-#### 管理
-- `GET /api/v1/admin/employees` - 従業員一覧
-- `POST /api/v1/admin/employees` - 従業員登録
-- `POST /api/v1/admin/employees/{id}/card` - カード登録
-
-## トラブルシューティング
-
-### PaSoRiが認識されない
-
-1. USBケーブルの接続確認
-2. ドライバのインストール確認
-3. 他のアプリケーションがPaSoRiを使用していないか確認
-
-Linux環境の場合：
+### Docker実行
 ```bash
-# udevルールの設定
-sudo cp docs/90-pasori.rules /etc/udev/rules.d/
-sudo udevadm control --reload-rules
+# 開発環境
+docker-compose up -d
+
+# 本番環境
+docker-compose -f docker-compose.prod.yml up -d
+
+# ヘルスチェック
+curl http://localhost:8000/health
 ```
 
-### モックモード
+## 📊 運用・監視
 
-PaSoRiが利用できない環境では、自動的にモックモードで動作します。
+### ヘルスチェック機能
+- **基本ヘルスチェック**: `/health`
+- **詳細ヘルスチェック**: `/health/detailed`
+- **システムメトリクス**: `/metrics`
+- **依存関係チェック**: `/health/dependencies`
 
+### ログシステム
 ```bash
-# .envで明示的に設定
-PASORI_MOCK_MODE=True
+# ログ確認
+tail -f logs/app.log          # アプリケーションログ
+tail -f logs/security.log     # セキュリティ監査ログ
+tail -f logs/performance.log  # パフォーマンスログ
+tail -f logs/error.log        # エラーログ
 ```
 
-## セキュリティ
+### 監視ダッシュボード
+- **システム監視**: CPU・メモリ・ディスク使用率
+- **アプリケーション監視**: リクエスト数・レスポンス時間
+- **セキュリティ監視**: 認証試行・不正アクセス
+- **ビジネス監視**: 打刻数・従業員状況
 
-### 認証・セキュリティ機能
+## 🚀 デプロイメント
 
-- **JWT認証**: 32文字以上の強力なシークレットキーを強制
-- **安全なシリアライゼーション**: pickleの代わりにorjsonを使用
-- **環境変数管理**: pydanticによる設定検証
-- **セキュリティスキャン**: banditとsafetyによる脆弱性チェック
-- **機密ファイル保護**: .gitignoreと.gitattributesで完全保護
-- **カードIDハッシュ化**: SHA-256でハッシュ化して保存
-- **SQLインジェクション対策**: SQLAlchemy ORM使用
+### GitHub Actions自動デプロイ
+```yaml
+# ステージング環境
+git push origin feature/your-feature
 
-### CI/CDパイプライン
+# 本番環境
+git push origin main
+```
 
-- **自動テスト**: Python 3.9-3.12で並列実行
-- **コード品質**: flake8, mypy, black, isortによる自動チェック
-- **カバレッジ**: 80%以上のテストカバレッジを強制
-- **マルチDB対応**: PostgreSQLとSQLiteでのテスト実行
-- **セキュリティ監査**: 定期的な脆弱性スキャン
+### 手動デプロイ
+```bash
+# Docker イメージビルド
+docker build -t attendance-system:latest .
 
-## ライセンス
+# 本番環境デプロイ
+docker run -d \
+  --name attendance-system \
+  -p 8000:8000 \
+  -e JWT_SECRET_KEY=your-secret \
+  attendance-system:latest
+```
 
-MIT License
+## 🔮 ロードマップ
 
-## 貢献
+### v2.1 (2024 Q2)
+- [ ] GraphQL API
+- [ ] リアルタイム通知
+- [ ] SSO・SAML認証
+
+### v2.2 (2024 Q3)
+- [ ] モバイルアプリ
+- [ ] 顔認証機能
+- [ ] 多言語対応
+
+### v2.3 (2024 Q4)
+- [ ] AI分析機能
+- [ ] 予測機能
+- [ ] BI連携
+
+## 🤝 貢献
 
 1. このリポジトリをフォーク
 2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
@@ -223,10 +302,29 @@ MIT License
 4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
 5. プルリクエストを作成
 
-## サポート
+### 開発ガイドライン
+- **Clean Architecture**: ドメイン層を意識した設計
+- **テスト駆動**: 80%以上のカバレッジ維持
+- **セキュリティ**: 脆弱性スキャン必須
+- **コード品質**: Black・isort・flake8・mypy準拠
 
-問題や質問がある場合は、[Issues](https://github.com/tsuyoshi-sk/attendance_system/issues)で報告してください。
+## 📄 ライセンス
 
-## 作者
+MIT License - 詳細は [LICENSE](LICENSE) を参照
 
-- GitHub: [@tsuyoshi-sk](https://github.com/tsuyoshi-sk)
+## 🆘 サポート
+
+- **バグ報告**: [Issues](https://github.com/tsuyoshi-sk/attendance_system/issues)
+- **機能要望**: [Discussions](https://github.com/tsuyoshi-sk/attendance_system/discussions)
+- **セキュリティ**: security@example.com
+
+## 👨‍💻 作者
+
+- **GitHub**: [@tsuyoshi-sk](https://github.com/tsuyoshi-sk)
+- **Email**: contact@example.com
+
+---
+
+**🚀 Enterprise-Ready • 🔒 Security-First • 📱 Multi-Platform • ⚡ High-Performance**
+
+*Built with ❤️ using FastAPI, Clean Architecture, and modern best practices*
