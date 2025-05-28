@@ -44,11 +44,11 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False
     
     # セキュリティ設定
-    JWT_SECRET_KEY: str = Field(..., min_length=32)  # 32→64文字に強化
+    JWT_SECRET_KEY: str = Field(..., min_length=64)  # OWASP ASVS Level 2準拠
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 60→15分に短縮
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    SECRET_KEY: str = Field(..., min_length=32)
+    SECRET_KEY: str = Field(..., min_length=64)  # OWASP ASVS Level 2準拠
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     REDIS_PREFIX: str = "attendance_system"
     
     # PaSoRi設定
-    IDM_HASH_SECRET: str = "your-idm-hash-secret"
+    IDM_HASH_SECRET: str = Field(..., min_length=64)  # OWASP ASVS Level 2準拠
     PASORI_TIMEOUT: int = 3
     PASORI_MOCK_MODE: bool = True
     
@@ -153,8 +153,8 @@ class Settings(BaseSettings):
         if len(self.SECRET_KEY) < 16:
             errors.append("SECRET_KEY は16文字以上である必要があります")
         
-        if len(self.IDM_HASH_SECRET) < 8:
-            errors.append("IDM_HASH_SECRET は8文字以上である必要があります")
+        if len(self.IDM_HASH_SECRET) < 64:
+            errors.append("IDM_HASH_SECRET は64文字以上である必要があります（OWASP ASVS Level 2準拠）")
         
         if self.PASORI_TIMEOUT < 1 or self.PASORI_TIMEOUT > 10:
             errors.append("PASORI_TIMEOUT は1-10秒の範囲で設定してください")

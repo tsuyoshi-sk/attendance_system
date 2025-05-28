@@ -18,9 +18,11 @@ redis[hiredis]==5.0.1
 # JSON処理（高速・安全）
 orjson==3.9.10
 
-# 認証・セキュリティ
+# 認証・セキュリティ（OWASP ASVS Level 2準拠）
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+cryptography==41.0.7  # 高度な暗号化機能
+bcrypt==4.1.2  # パスワードハッシュ化
 python-multipart==0.0.6
 slowapi==0.1.9
 
