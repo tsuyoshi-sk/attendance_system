@@ -65,8 +65,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379
-          JWT_SECRET_KEY: test-secret-key-for-testing-only-32chars
-          SECRET_KEY: test-secret-key-for-testing-only-32chars
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY_TEST || 'test-secret-key-for-testing-only-must-be-at-least-64-characters-long' }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY_TEST || 'test-secret-key-for-testing-only-must-be-at-least-64-characters-long' }}
           ENVIRONMENT: testing
         run: |
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
@@ -80,6 +80,9 @@ jobs:
           alembic upgrade head
       
       - name: Run tests with coverage
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY_TEST || 'test-secret-key-for-testing-only-must-be-at-least-64-characters-long' }}
+          DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/test_db
         run: |
           pytest -v --cov=backend --cov-report=xml --cov-report=html --cov-report=term-missing --timeout=300
       

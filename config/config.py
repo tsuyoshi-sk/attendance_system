@@ -13,12 +13,8 @@ from pathlib import Path
 from pydantic import BaseSettings, validator, Field
 from dotenv import load_dotenv
 
-from .environments import (
-    BaseConfig,
-    DevelopmentConfig,
-    ProductionConfig,
-    TestingConfig
-)
+# 環境設定インポートを削除（存在しないため）
+# from .environments import ...
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +43,9 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False
     
     # セキュリティ設定
-    JWT_SECRET_KEY: str = Field(..., min_length=32)
+    JWT_SECRET_KEY: str = Field(..., min_length=64)  # 32→64文字に強化
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 60→15分に短縮
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     SECRET_KEY: str = Field(..., min_length=32)
     ALGORITHM: str = "HS256"
@@ -60,6 +56,8 @@ class Settings(BaseSettings):
     
     # CORS設定
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_CREDENTIALS: bool = True
+    SECURITY_HEADERS_ENABLED: bool = True
     
     # Redis設定
     REDIS_URL: str = "redis://localhost:6379"
@@ -178,29 +176,7 @@ class Settings(BaseSettings):
         return "HS256"
 
 
-def get_config() -> Type[BaseConfig]:
-    """
-    環境に応じた設定クラスを取得
-    
-    Returns:
-        設定クラス
-    """
-    env = os.getenv("ENVIRONMENT", "development").lower()
-    
-    config_map = {
-        "development": DevelopmentConfig,
-        "production": ProductionConfig,
-        "testing": TestingConfig,
-    }
-    
-    config_class = config_map.get(env, DevelopmentConfig)
-    logger.info(f"Using {config_class.__name__} for environment: {env}")
-    
-    return config_class
-
-
-# 環境別設定クラスの取得
-ConfigClass = get_config()
+# 環境別設定は単純化されたため削除
 
 
 # 設定インスタンス（環境別設定を単純化）

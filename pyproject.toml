@@ -1,10 +1,13 @@
 [tool.poetry]
 name = "attendance-system"
-version = "1.0.0"
+version = "2.0.0"
 description = "PaSoRi RC-S300を使用した勤怠管理システム"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-packages = [{include = "backend"}]
+packages = [{include = "backend"}, {include = "config"}]
+
+[tool.poetry.scripts]
+attendance-server = "backend.app.main:main"
 
 [tool.poetry.dependencies]
 python = "^3.8"
