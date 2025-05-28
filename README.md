@@ -1,5 +1,7 @@
 # 勤怠管理システム
 
+[![Tests](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/test.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions)
+[![Code Quality](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/quality.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions)
 [![CI/CD Pipeline](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/ci.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/tsuyoshi-sk/attendance_system/branch/main/graph/badge.svg)](https://codecov.io/gh/tsuyoshi-sk/attendance_system)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -136,6 +138,12 @@ make check
 
 # セキュリティチェック
 make security
+
+# 品質チェック（全チェック実行）
+make quality
+
+# CI/CDパイプライン（ローカル実行）
+make ci
 ```
 
 ### コーディング規約
@@ -185,9 +193,23 @@ PASORI_MOCK_MODE=True
 
 ## セキュリティ
 
-- カードIDは SHA-256 でハッシュ化して保存
-- 環境変数で秘密鍵を管理
-- SQLインジェクション対策済み（SQLAlchemy ORM使用）
+### 認証・セキュリティ機能
+
+- **JWT認証**: 32文字以上の強力なシークレットキーを強制
+- **安全なシリアライゼーション**: pickleの代わりにorjsonを使用
+- **環境変数管理**: pydanticによる設定検証
+- **セキュリティスキャン**: banditとsafetyによる脆弱性チェック
+- **機密ファイル保護**: .gitignoreと.gitattributesで完全保護
+- **カードIDハッシュ化**: SHA-256でハッシュ化して保存
+- **SQLインジェクション対策**: SQLAlchemy ORM使用
+
+### CI/CDパイプライン
+
+- **自動テスト**: Python 3.9-3.12で並列実行
+- **コード品質**: flake8, mypy, black, isortによる自動チェック
+- **カバレッジ**: 80%以上のテストカバレッジを強制
+- **マルチDB対応**: PostgreSQLとSQLiteでのテスト実行
+- **セキュリティ監査**: 定期的な脆弱性スキャン
 
 ## ライセンス
 
