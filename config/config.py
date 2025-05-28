@@ -10,7 +10,7 @@ import logging
 from typing import Optional, List, Type
 from datetime import time
 from pathlib import Path
-from pydantic import BaseSettings, validator
+from pydantic import BaseSettings, validator, Field
 from dotenv import load_dotenv
 
 from .environments import (
@@ -47,12 +47,13 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False
     
     # セキュリティ設定
-    JWT_SECRET_KEY: str
+    JWT_SECRET_KEY: str = Field(..., min_length=32)
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-    SECRET_KEY: str
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    SECRET_KEY: str = Field(..., min_length=32)
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     
     # API設定
     API_V1_PREFIX: str = "/api/v1"
@@ -202,34 +203,8 @@ def get_config() -> Type[BaseConfig]:
 ConfigClass = get_config()
 
 
-class EnhancedSettings(Settings, ConfigClass):
-    """
-    拡張設定クラス
-    
-    pydanticのSettingsと環境別設定を統合
-    """
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
-        
-        # 環境別設定クラスの値をデフォルトとして使用
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                file_secret_settings,
-            )
-
-
-# 設定インスタンス
-settings = EnhancedSettings()
+# 設定インスタンス（環境別設定を単純化）
+settings = Settings()
 
 # 後方互換性のため
 config = settings

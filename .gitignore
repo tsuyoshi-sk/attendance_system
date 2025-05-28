@@ -104,12 +104,43 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Cache
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Secrets
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+private/
 
 # Spyder project settings
 .spyderproject

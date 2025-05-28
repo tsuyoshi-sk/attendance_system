@@ -15,6 +15,9 @@ aiosqlite==0.19.0
 asyncpg==0.29.0
 redis[hiredis]==5.0.1
 
+# JSON処理（高速・安全）
+orjson==3.9.10
+
 # 認証・セキュリティ
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
