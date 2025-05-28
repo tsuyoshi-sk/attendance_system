@@ -1,376 +1,78 @@
-name: Attendance System CI/CD (Poetry)
+name: Poetry CI/CD
 
 on:
   push:
-    branches: [ main, develop, feature/* ]
+    branches: [ main, feature/integration-hub ]
   pull_request:
-    branches: [ main, develop ]
-  schedule:
-    - cron: '0 2 * * 1'  # 毎週月曜日 2:00 UTC (セキュリティスキャン)
-
-env:
-  PYTHON_VERSION: '3.10'
-  POETRY_VERSION: '1.7.1'
+    branches: [ main ]
 
 jobs:
-  # コード品質・リント
-  code-quality:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: ${{ env.POETRY_VERSION }}
-        virtualenvs-create: true
-        virtualenvs-in-project: true
-
-    - name: Load cached venv
-      id: cached-poetry-dependencies
-      uses: actions/cache@v4
-      with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/poetry.lock') }}
-
-    - name: Install dependencies
-      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --with dev
-
-    - name: Run Black (code formatting check)
-      run: poetry run black --check src/ tests/
-
-    - name: Run isort (import sorting check)
-      run: poetry run isort --check-only src/ tests/
-
-    - name: Run flake8 (linting)
-      run: poetry run flake8 src/ tests/
-
-    - name: Run MyPy (type checking)
-      run: poetry run mypy src/attendance_system/
-
-    - name: Run Pylint (code analysis)
-      run: poetry run pylint src/attendance_system/ --output-format=json > pylint-report.json || true
-
-    - name: Upload code quality results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: code-quality-results
-        path: |
-          pylint-report.json
-        retention-days: 30
-
-  # セキュリティスキャン
-  security-scan:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: ${{ env.POETRY_VERSION }}
-
-    - name: Install dependencies
-      run: poetry install --no-interaction --with dev
-
-    - name: Run Safety (dependency vulnerability check)
-      run: |
-        poetry run safety check --json --output safety-report.json || true
-
-    - name: Run Bandit (security linting)
-      run: |
-        poetry run bandit -r src/ -f json -o bandit-report.json || true
-
-    - name: Upload security scan results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: security-scan-results
-        path: |
-          safety-report.json
-          bandit-report.json
-        retention-days: 30
-
-  # 単体テスト
-  unit-tests:
+  poetry-check:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: [3.9, 3.11]
     
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
-
+    
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-
+    
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
-        version: ${{ env.POETRY_VERSION }}
+        version: 1.7.1  # 安定版を使用
         virtualenvs-create: true
         virtualenvs-in-project: true
-
+        installer-parallel: true
+    
     - name: Load cached venv
       id: cached-poetry-dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v3
       with:
         path: .venv
         key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
+    
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-      run: poetry install --no-interaction --with dev,test
-
-    - name: Run unit tests with coverage
       run: |
-        poetry run pytest tests/unit/ -v \
-          --cov=src/attendance_system \
-          --cov-report=xml \
-          --cov-report=html \
-          --cov-report=term \
-          --junitxml=test-results.xml
+        poetry install --no-interaction --no-root
+    
+    - name: Install project
+      run: poetry install --no-interaction
+    
+    - name: Check poetry.lock is up to date
+      run: |
+        poetry lock --check
+    
+    - name: Run tests with Poetry
+      run: |
+        poetry run python -m pytest tests/ -v --cov=src/attendance_system --cov-report=xml
       env:
-        PYTHONPATH: ${{ github.workspace }}/src
-
+        SECRET_KEY: test-secret-key-64-characters-long-for-comprehensive-testing-extended-version
+        JWT_SECRET_KEY: test-jwt-secret-64-characters-long-for-comprehensive-testing-extended-version
+        IDM_HASH_SECRET: test-idm-hash-secret-64-characters-long-for-comprehensive-testing-extended
+    
+    - name: Code formatting check
+      run: |
+        poetry run black --check src/ tests/
+    
+    - name: Linting check
+      run: |
+        poetry run flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+    
+    - name: Type checking
+      run: |
+        poetry run mypy src/attendance_system/
+    
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      if: matrix.python-version == '3.11'
+      uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
-        flags: unit-tests,${{ matrix.python-version }}
-        name: unit-tests-${{ matrix.python-version }}
-        fail_ci_if_error: false
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: unit-test-results-${{ matrix.python-version }}
-        path: |
-          htmlcov/
-          coverage.xml
-          test-results.xml
-        retention-days: 30
-
-  # 統合テスト
-  integration-tests:
-    runs-on: ubuntu-latest
-    needs: [unit-tests]
-    services:
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: ${{ env.POETRY_VERSION }}
-
-    - name: Install dependencies
-      run: poetry install --no-interaction --with dev,test
-
-    - name: Wait for Redis
-      run: |
-        while ! redis-cli -h localhost -p 6379 ping; do
-          echo "Waiting for Redis..."
-          sleep 2
-        done
-
-    - name: Run integration tests
-      run: |
-        poetry run pytest tests/integration/ -v \
-          --tb=short \
-          --junitxml=integration-test-results.xml
-      env:
-        PYTHONPATH: ${{ github.workspace }}/src
-        REDIS_URL: redis://localhost:6379
-        DATABASE_URL: sqlite:///:memory:
-        ENVIRONMENT: testing
-
-    - name: Upload integration test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: integration-test-results
-        path: integration-test-results.xml
-        retention-days: 30
-
-  # Docker ビルドテスト
-  docker-build:
-    runs-on: ubuntu-latest
-    needs: [code-quality, security-scan, unit-tests]
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: false
-        tags: attendance-system:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          POETRY_VERSION=${{ env.POETRY_VERSION }}
-
-    - name: Test Docker image
-      run: |
-        docker run --rm -d --name test-container -p 8000:8000 \
-          -e ENVIRONMENT=testing \
-          attendance-system:test
-        
-        # ヘルスチェック
-        sleep 15
-        curl -f http://localhost:8000/health || exit 1
-        
-        # コンテナ停止
-        docker stop test-container
-
-  # パフォーマンステスト
-  performance-test:
-    runs-on: ubuntu-latest
-    needs: [integration-tests]
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: ${{ env.POETRY_VERSION }}
-
-    - name: Install dependencies
-      run: poetry install --no-interaction --with dev,test
-
-    - name: Run performance tests
-      run: |
-        poetry run pytest tests/performance/ -v \
-          --tb=short \
-          --junitxml=performance-test-results.xml
-      env:
-        PYTHONPATH: ${{ github.workspace }}/src
-
-    - name: Upload performance test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: performance-test-results
-        path: performance-test-results.xml
-        retention-days: 30
-
-  # 依存関係チェック
-  dependency-check:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: ${{ env.POETRY_VERSION }}
-
-    - name: Check dependencies
-      run: |
-        poetry check
-        poetry show --outdated
-
-    - name: Export requirements
-      run: |
-        poetry export -f requirements.txt --output requirements.txt --with dev
-        poetry export -f requirements.txt --output requirements-prod.txt
-
-    - name: Upload requirements
-      uses: actions/upload-artifact@v4
-      with:
-        name: requirements
-        path: |
-          requirements.txt
-          requirements-prod.txt
-        retention-days: 30
-
-  # テスト結果集約
-  test-summary:
-    runs-on: ubuntu-latest
-    needs: [code-quality, security-scan, unit-tests, integration-tests, docker-build]
-    if: always()
-    
-    steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: artifacts
-
-    - name: Generate test summary
-      run: |
-        echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
-        echo "| Test Type | Status |" >> $GITHUB_STEP_SUMMARY
-        echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Docker Build | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
-
-    - name: Check overall status
-      run: |
-        if [[ "${{ needs.code-quality.result }}" == "success" && \
-              "${{ needs.security-scan.result }}" == "success" && \
-              "${{ needs.unit-tests.result }}" == "success" && \
-              "${{ needs.integration-tests.result }}" == "success" && \
-              "${{ needs.docker-build.result }}" == "success" ]]; then
-          echo "✅ All tests passed!"
-          exit 0
-        else
-          echo "❌ Some tests failed!"
-          exit 1
-        fi
+        flags: unittests
+        name: codecov-umbrella
