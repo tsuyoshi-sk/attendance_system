@@ -5,7 +5,7 @@
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Numeric, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Numeric, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from typing import Optional
 import enum
@@ -37,7 +37,7 @@ class Employee(Base):
     card_idm_hash = Column(String(64), unique=True, nullable=True, index=True)
     
     # 部署・役職
-    department = Column(String(100), nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True, index=True)
     position = Column(String(100), nullable=True)
     
     # 雇用形態
@@ -57,6 +57,7 @@ class Employee(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # リレーション
+    department = relationship("Department", back_populates="employees")
     punch_records = relationship(
         "PunchRecord", 
         foreign_keys="PunchRecord.employee_id",
