@@ -1,5 +1,11 @@
 # 勤怠管理システム
 
+[![CI/CD Pipeline](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/ci.yml/badge.svg)](https://github.com/tsuyoshi-sk/attendance_system/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/tsuyoshi-sk/attendance_system/branch/main/graph/badge.svg)](https://codecov.io/gh/tsuyoshi-sk/attendance_system)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 PaSoRi RC-S300を使用したFeliCaベースの勤怠管理システム
 
 ## 概要
