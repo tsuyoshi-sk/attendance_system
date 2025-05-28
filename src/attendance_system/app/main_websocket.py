@@ -11,8 +11,10 @@ from typing import Any, Dict
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import uvicorn
+import os
 
 from ..config.config import config
 from ..security.security_manager import SecurityManager
@@ -93,6 +95,9 @@ def create_app() -> FastAPI:
     # エラーハンドラーの設定
     setup_exception_handlers(app)
     
+    # 静的ファイル配信の設定
+    setup_static_files(app)
+    
     # ルートの設定
     setup_routes(app)
     
@@ -136,6 +141,38 @@ def setup_exception_handlers(app: FastAPI):
                 "status_code": 500
             }
         )
+
+def setup_static_files(app: FastAPI):
+    """静的ファイル配信の設定"""
+    # 静的ファイルディレクトリのパス
+    static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+    
+    if os.path.exists(static_dir):
+        # 静的ファイル配信のマウント
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+        
+        # PWA用ファイルの直接配信
+        from fastapi.responses import FileResponse
+        
+        @app.get("/manifest.json")
+        async def serve_manifest():
+            manifest_path = os.path.join(static_dir, "manifest.json")
+            return FileResponse(manifest_path, media_type="application/json")
+        
+        @app.get("/sw.js")
+        async def serve_service_worker():
+            sw_path = os.path.join(static_dir, "sw.js")
+            return FileResponse(sw_path, media_type="application/javascript")
+        
+        # メインページの配信
+        @app.get("/app")
+        async def serve_pwa_app():
+            index_path = os.path.join(static_dir, "index.html")
+            return FileResponse(index_path, media_type="text/html")
+        
+        logger.info(f"Static files mounted from: {static_dir}")
+    else:
+        logger.warning(f"Static directory not found: {static_dir}")
 
 def setup_routes(app: FastAPI):
     """ルートの設定"""
