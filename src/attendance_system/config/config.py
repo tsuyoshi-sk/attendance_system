@@ -110,6 +110,9 @@ class Settings(BaseSettings):
     ENABLE_MONITORING: bool = True
     MONITORING_INTERVAL_SECONDS: int = 60
     
+    # NFC セキュリティ設定
+    NFC_CARD_ID_SALT: str = "default-nfc-salt-key"
+    
     @validator('CORS_ORIGINS', pre=True)
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
