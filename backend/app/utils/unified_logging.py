@@ -19,6 +19,30 @@ import traceback
 from config.config import settings
 
 
+class InterceptHandler(logging.Handler):
+    """標準loggingをキャプチャするハンドラー"""
+    
+    def emit(self, record: logging.LogRecord) -> None:
+        # ログレベルの取得
+        try:
+            level = record.levelname
+        except AttributeError:
+            level = record.levelno
+        
+        # フレームの検索
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+        
+        # カスタムログ処理（必要に応じて実装）
+        self.handle_log(level, record.getMessage(), depth)
+    
+    def handle_log(self, level: str, message: str, depth: int) -> None:
+        """ログ処理の実装"""
+        pass
+
+
 class StructuredFormatter(logging.Formatter):
     """構造化ログフォーマッター（JSON/テキスト両対応）"""
     
@@ -95,6 +119,12 @@ class LoggerFactory:
         root_logger = logging.getLogger()
         root_logger.setLevel(getattr(logging, settings.LOG_LEVEL))
         root_logger.handlers = []
+        
+        # Uvicornなどのログを統合
+        for logger_name in ["uvicorn", "uvicorn.access", "uvicorn.error"]:
+            logger = logging.getLogger(logger_name)
+            logger.handlers = [InterceptHandler()]
+            logger.propagate = False
         
         # フォーマッターの選択
         formatter_type = "text" if settings.DEBUG else settings.LOG_FORMAT
@@ -308,6 +338,7 @@ def log_execution_time(logger_name: str = __name__):
                 )
                 raise
         
+        import asyncio
         return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
     return decorator
 

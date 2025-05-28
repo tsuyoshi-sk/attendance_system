@@ -1,0 +1,65 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-quality-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-quality-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 mypy black isort safety bandit
+      
+      - name: Lint with flake8
+        run: |
+          flake8 backend/ --max-line-length=88 --extend-ignore=E203,W503 --exclude=migrations,__pycache__
+      
+      - name: Type check with mypy
+        run: |
+          mypy backend/ --ignore-missing-imports --no-strict-optional
+      
+      - name: Check security vulnerabilities with safety
+        run: |
+          safety check --json > safety-report.json || true
+      
+      - name: Security scan with bandit
+        run: |
+          bandit -r backend/ -f json -o bandit-report.json -ll || true
+      
+      - name: Check code formatting with black
+        run: |
+          black --check backend/
+      
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only backend/
+      
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            safety-report.json
+            bandit-report.json
