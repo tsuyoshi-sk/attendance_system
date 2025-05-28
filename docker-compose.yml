@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # PostgreSQL データベース
+  postgres:
+    image: postgres:13-alpine
+    container_name: attendance_postgres
+    environment:
+      POSTGRES_USER: attendance_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-attendance_pass}
+      POSTGRES_DB: attendance_db
+      TZ: Asia/Tokyo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U attendance_user -d attendance_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - attendance_network
+
+  # Redis キャッシュ
+  redis:
+    image: redis:6-alpine
+    container_name: attendance_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_pass}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - attendance_network
+
+  # FastAPI アプリケーション
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: attendance_backend
+    environment:
+      # データベース設定
+      DATABASE_URL: postgresql://attendance_user:${DB_PASSWORD:-attendance_pass}@postgres:5432/attendance_db
+      # Redis設定
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_pass}@redis:6379/0
+      # 環境設定
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      # セキュリティ設定
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      SECRET_KEY: ${SECRET_KEY}
+      # その他の環境変数
+      TZ: Asia/Tokyo
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./exports:/app/exports
+      - ./config:/app/config:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - attendance_network
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        python scripts/wait_for_db.py &&
+        echo 'Running migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting application...' &&
+        uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --workers ${WORKERS:-2}
+      "
+
+  # Nginx リバースプロキシ（本番環境用）
+  nginx:
+    image: nginx:alpine
+    container_name: attendance_nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./pwa:/usr/share/nginx/html:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - attendance_network
+    profiles:
+      - production
+
+  # バックアップサービス（本番環境用）
+  backup:
+    image: postgres:13-alpine
+    container_name: attendance_backup
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:-attendance_pass}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: 
+      - |
+        while true; do
+          echo "Running backup at $$(date)"
+          pg_dump -h postgres -U attendance_user -d attendance_db > /backups/backup_$$(date +\%Y\%m\%d_\%H\%M\%S).sql
+          find /backups -name "backup_*.sql" -mtime +30 -delete
+          sleep 86400
+        done
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - attendance_network
+    profiles:
+      - production
+
+# ボリューム定義
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ネットワーク定義
+networks:
+  attendance_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
