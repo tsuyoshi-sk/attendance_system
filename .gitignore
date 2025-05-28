@@ -227,3 +227,20 @@ pyvenv.cfg
 # Local development
 .local/
 local/
+# ===========================================
+# セキュリティ: 機密情報の除外 (緊急追加)
+# ===========================================
+.env
+.env.*
+\!.env.sample
+\!.env.example
+*.key
+*.pem
+*.crt
+*secret*
+*credential*
+*.db
+*.sqlite*
+logs/
+*.log
+EOF < /dev/null
