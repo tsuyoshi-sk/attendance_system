@@ -4,9 +4,6 @@ from unittest.mock import Mock, AsyncMock
 import os
 import sys
 
-# プロジェクトルートをPythonパスに追加
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 @pytest.fixture(scope="session")
 def event_loop():
     """asyncio event loop fixture for async tests"""

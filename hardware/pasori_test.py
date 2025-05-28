@@ -11,8 +11,8 @@ import time
 import hashlib
 from typing import Optional, Dict, Any
 
-# プロジェクトルートをPythonパスに追加
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# プロジェクトルートをPythonパスに追加 - src layout uses PYTHONPATH
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 try:
     import nfc

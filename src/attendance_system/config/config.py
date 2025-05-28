@@ -10,7 +10,8 @@ import logging
 from typing import Optional, List, Type
 from datetime import time
 from pathlib import Path
-from pydantic import BaseSettings, validator, Field
+from pydantic_settings import BaseSettings
+from pydantic import validator, Field
 from dotenv import load_dotenv
 
 # 環境設定インポートを削除（存在しないため）
@@ -73,10 +74,10 @@ class Settings(BaseSettings):
     NFC_MAX_RETRIES: int = 3
     
     # 勤務時間設定
-    BUSINESS_START_TIME = time(9, 0)  # 09:00
-    BUSINESS_END_TIME = time(18, 0)   # 18:00
-    BREAK_START_TIME = time(12, 0)    # 12:00
-    BREAK_END_TIME = time(13, 0)      # 13:00
+    BUSINESS_START_TIME: time = time(9, 0)  # 09:00
+    BUSINESS_END_TIME: time = time(18, 0)   # 18:00
+    BREAK_START_TIME: time = time(12, 0)    # 12:00
+    BREAK_END_TIME: time = time(13, 0)      # 13:00
     
     # 時間丸め設定（分単位）
     DAILY_ROUND_MINUTES: int = int(os.getenv("DAILY_ROUND_MINUTES", "15"))
