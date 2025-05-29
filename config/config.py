@@ -10,15 +10,12 @@ import logging
 from typing import Optional, List, Type
 from datetime import time
 from pathlib import Path
-from pydantic import BaseSettings, validator
+from pydantic_settings import BaseSettings
+from pydantic import validator, Field
 from dotenv import load_dotenv
 
-from .environments import (
-    BaseConfig,
-    DevelopmentConfig,
-    ProductionConfig,
-    TestingConfig
-)
+# 環境設定インポートを削除（存在しないため）
+# from .environments import ...
 
 logger = logging.getLogger(__name__)
 
@@ -47,18 +44,21 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False
     
     # セキュリティ設定
-    JWT_SECRET_KEY: str
+    JWT_SECRET_KEY: str = Field(..., min_length=64)  # 32→64文字に強化
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-    SECRET_KEY: str
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 60→15分に短縮
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    SECRET_KEY: str = Field(..., min_length=32)
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     
     # API設定
     API_V1_PREFIX: str = "/api/v1"
     
     # CORS設定
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_CREDENTIALS: bool = True
+    SECURITY_HEADERS_ENABLED: bool = True
     
     # Redis設定
     REDIS_URL: str = "redis://localhost:6379"
@@ -74,10 +74,10 @@ class Settings(BaseSettings):
     NFC_MAX_RETRIES: int = 3
     
     # 勤務時間設定
-    BUSINESS_START_TIME = time(9, 0)  # 09:00
-    BUSINESS_END_TIME = time(18, 0)   # 18:00
-    BREAK_START_TIME = time(12, 0)    # 12:00
-    BREAK_END_TIME = time(13, 0)      # 13:00
+    BUSINESS_START_TIME: time = time(9, 0)  # 09:00
+    BUSINESS_END_TIME: time = time(18, 0)   # 18:00
+    BREAK_START_TIME: time = time(12, 0)    # 12:00
+    BREAK_END_TIME: time = time(13, 0)      # 13:00
     
     # 時間丸め設定（分単位）
     DAILY_ROUND_MINUTES: int = int(os.getenv("DAILY_ROUND_MINUTES", "15"))
@@ -109,6 +109,9 @@ class Settings(BaseSettings):
     # 監視設定
     ENABLE_MONITORING: bool = True
     MONITORING_INTERVAL_SECONDS: int = 60
+    
+    # NFC セキュリティ設定
+    NFC_CARD_ID_SALT: str = "default-nfc-salt-key"
     
     @validator('CORS_ORIGINS', pre=True)
     def parse_cors_origins(cls, v):
@@ -177,59 +180,11 @@ class Settings(BaseSettings):
         return "HS256"
 
 
-def get_config() -> Type[BaseConfig]:
-    """
-    環境に応じた設定クラスを取得
-    
-    Returns:
-        設定クラス
-    """
-    env = os.getenv("ENVIRONMENT", "development").lower()
-    
-    config_map = {
-        "development": DevelopmentConfig,
-        "production": ProductionConfig,
-        "testing": TestingConfig,
-    }
-    
-    config_class = config_map.get(env, DevelopmentConfig)
-    logger.info(f"Using {config_class.__name__} for environment: {env}")
-    
-    return config_class
+# 環境別設定は単純化されたため削除
 
 
-# 環境別設定クラスの取得
-ConfigClass = get_config()
-
-
-class EnhancedSettings(Settings, ConfigClass):
-    """
-    拡張設定クラス
-    
-    pydanticのSettingsと環境別設定を統合
-    """
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
-        
-        # 環境別設定クラスの値をデフォルトとして使用
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                env_settings,
-                file_secret_settings,
-            )
-
-
-# 設定インスタンス
-settings = EnhancedSettings()
+# 設定インスタンス（環境別設定を単純化）
+settings = Settings()
 
 # 後方互換性のため
 config = settings

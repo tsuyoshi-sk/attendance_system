@@ -4,9 +4,8 @@
 Redisを使用したキャッシュ管理とフォールバック機能を提供します。
 """
 
-import json
 import logging
-import pickle
+import orjson
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union, Callable
 from functools import wraps
@@ -79,9 +78,10 @@ class CacheService:
                     if deserializer:
                         return deserializer(value)
                     try:
-                        return pickle.loads(value)
+                        return orjson.loads(value)
                     except:
-                        return json.loads(value)
+                        logger.error(f"Failed to deserialize cache value for key {key}")
+                        return default
             else:
                 # ローカルキャッシュから取得
                 if full_key in self.local_cache:
@@ -124,9 +124,10 @@ class CacheService:
                 serialized_value = serializer(value)
             else:
                 try:
-                    serialized_value = pickle.dumps(value)
+                    serialized_value = orjson.dumps(value)
                 except:
-                    serialized_value = json.dumps(value).encode()
+                    logger.error(f"Failed to serialize cache value for key {key}")
+                    return False
             
             if self.redis_client:
                 if ttl:

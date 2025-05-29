@@ -83,7 +83,9 @@ class EnhancedNFCClient {
         window.addEventListener('beforeunload', this.handleBeforeUnloadBound);
         
         // 定期的な品質チェック
-        this.qualityCheckInterval = setInterval(() => this.checkConnectionQuality(), 30000);
+        if (!this.qualityCheckInterval) {
+            this.qualityCheckInterval = setInterval(() => this.checkConnectionQuality(), 30000);
+        }
         
         Utils.log('info', 'EnhancedNFCClient initialized', {
             clientId: this.clientId,

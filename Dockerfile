@@ -1,5 +1,5 @@
 # マルチステージビルドを使用して軽量なイメージを作成
-FROM python:3.9-slim as builder
+FROM python:3.12-slim as builder
 
 # 作業ディレクトリの設定
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 # 実行用の軽量イメージ
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 # 作業ディレクトリの設定
 WORKDIR /app
@@ -54,7 +54,7 @@ USER attendance
 
 # ヘルスチェックの設定
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 # ポートの公開
 EXPOSE 8000

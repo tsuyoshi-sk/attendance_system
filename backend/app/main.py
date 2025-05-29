@@ -15,16 +15,14 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 
-import sys
-import os
+# sys.path hackを完全に削除
 
-# プロジェクトルートをPythonパスに追加
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from config.config import config
-from backend.app.database import init_db, get_db
-from backend.app.api import punch, admin, auth, reports, analytics
-from backend.app.health_check import get_integrated_health_status
+# 相対インポートに変更
+from ...config.config import config
+from .database import init_db, get_db
+from .api import punch, admin, auth, reports, analytics
+from .health_check import get_integrated_health_status
+from .middleware.security import add_security_middleware
 
 
 # ログ設定
@@ -84,14 +82,8 @@ app = FastAPI(
     redoc_url="/redoc" if config.DEBUG else None,
 )
 
-# CORS設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=config.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# セキュリティミドルウェアの追加
+add_security_middleware(app, config)
 
 
 # グローバル例外ハンドラー
@@ -276,13 +268,18 @@ app.include_router(
 )
 
 
-if __name__ == "__main__":
+def main():
+    """CLIエントリーポイント"""
     import uvicorn
     
     uvicorn.run(
-        "main:app",
+        "backend.app.main:app",
         host="0.0.0.0",
         port=8000,
         reload=config.DEBUG,
         log_level=config.LOG_LEVEL.lower()
     )
+
+
+if __name__ == "__main__":
+    main()

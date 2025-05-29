@@ -1,0 +1,78 @@
+name: Poetry CI/CD
+
+on:
+  push:
+    branches: [ main, feature/integration-hub ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  poetry-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.11]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.7.1  # 安定版を使用
+        virtualenvs-create: true
+        virtualenvs-in-project: true
+        installer-parallel: true
+    
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: actions/cache@v3
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+    
+    - name: Install dependencies
+      if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      run: |
+        poetry install --no-interaction --no-root
+    
+    - name: Install project
+      run: poetry install --no-interaction
+    
+    - name: Check poetry.lock is up to date
+      run: |
+        poetry lock --check
+    
+    - name: Run tests with Poetry
+      run: |
+        poetry run python -m pytest tests/ -v --cov=src/attendance_system --cov-report=xml
+      env:
+        SECRET_KEY: test-secret-key-64-characters-long-for-comprehensive-testing-extended-version
+        JWT_SECRET_KEY: test-jwt-secret-64-characters-long-for-comprehensive-testing-extended-version
+        IDM_HASH_SECRET: test-idm-hash-secret-64-characters-long-for-comprehensive-testing-extended
+    
+    - name: Code formatting check
+      run: |
+        poetry run black --check src/ tests/
+    
+    - name: Linting check
+      run: |
+        poetry run flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+    
+    - name: Type checking
+      run: |
+        poetry run mypy src/attendance_system/
+    
+    - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.11'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
