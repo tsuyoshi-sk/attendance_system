@@ -58,9 +58,9 @@ jobs:
       run: |
         poetry run python -m pytest tests/ -v -m "not slow" --cov=src/attendance_system --cov-report=xml --tb=short
       env:
-        SECRET_KEY: test-secret-key-64-characters-long-for-comprehensive-testing-extended-version
-        JWT_SECRET_KEY: test-jwt-secret-64-characters-long-for-comprehensive-testing-extended-version
-        IDM_HASH_SECRET: test-idm-hash-secret-64-characters-long-for-comprehensive-testing-extended
+        SECRET_KEY: test-secret-key-must-be-at-least-64-characters-long-for-comprehensive-testing-extended-version-complete
+        JWT_SECRET_KEY: test-jwt-secret-must-be-at-least-64-characters-long-for-comprehensive-testing-extended-version-complete
+        IDM_HASH_SECRET: test-idm-hash-secret-must-be-at-least-64-characters-long-for-comprehensive-testing-extended-version
     
     - name: Code formatting check with Black
       run: |

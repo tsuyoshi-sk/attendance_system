@@ -123,8 +123,11 @@ venv.bak/
 attendance.db
 attendance_test.db
 test_service.db
+test.db
 offline_punch_queue.db
 data/*.db
+backend/data/*.db
+backend/*.db
 
 # Logs
 *.log
@@ -188,7 +191,18 @@ exports/*.csv
 exports/*.xlsx
 daily_report.csv
 *.csv
-!requirements.csv  # このファイルは除外しない
+!requirements*.csv  # requirements関連のCSVは除外しない
+
+# Configuration backup files
+*.backup
+*.bak
+config.py.backup
+config.py.bak
+
+# Log files
+*.log
+uvicorn.log
+app.log
 
 # Temporary files
 *.tmp
