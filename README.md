@@ -12,38 +12,20 @@
 
 PaSoRi RC-S380、iPhone Suica、Android NFC対応の次世代勤怠管理システム
 
-## 🚀 3分クイックスタート
+## 🚀 今すぐ始める
 
-### 1. 環境セットアップ (1分)
-```bash
-# リポジトリクローン
-git clone https://github.com/tsuyoshi-sk/attendance_system.git
-cd attendance_system
+**5分で動かしたい** → [クイックスタート](QUICKSTART.md)  
+**詳しく知りたい** → このREADMEを読み進める
 
-# 環境変数設定
-cp .env.example .env
-# .envファイルを編集（秘密鍵は自動生成されます）
-```
+## ⚡ 概要
 
-### 2. 依存関係インストール (1分)
-```bash
-# Poetry使用の場合（推奨）
-poetry install
+このシステムは4並行AI開発により1ヶ月で構築された、エンタープライズレベルの勤怠管理システムです。
 
-# またはpip使用
-pip install -r requirements.txt
-```
-
-### 3. 起動 (1分)
-```bash
-# データベース初期化
-python scripts/init_database.py
-
-# アプリケーション起動
-uvicorn backend.app.main:app --reload
-
-# ブラウザで http://localhost:8000 を開く
-```
+### 主な特徴
+- 📱 **iPhone Suica対応** - 世界初の実装
+- 🔐 **OWASP ASVS Level 2** - エンタープライズセキュリティ
+- 📊 **リアルタイム分析** - WebSocket + PWA
+- 🏗️ **Clean Architecture** - 保守性重視の設計
 
 ## 🎯 主要機能
 
