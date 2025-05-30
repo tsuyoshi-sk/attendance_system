@@ -10,7 +10,7 @@
 
 **世界最高レベルのエンタープライズ級iPhone Suica対応勤怠管理システム**
 
-PaSoRi RC-S300、iPhone Suica、Android NFC対応の次世代勤怠管理システム
+PaSoRi RC-S380、iPhone Suica、Android NFC対応の次世代勤怠管理システム
 
 ## 🚀 v2.0 新機能
 
@@ -88,7 +88,7 @@ attendance_system/
 - **Python**: 3.9以上
 - **データベース**: SQLite・PostgreSQL
 - **キャッシュ**: Redis
-- **ハードウェア**: PaSoRi RC-S300（オプション）
+- **ハードウェア**: PaSoRi RC-S380（オプション、macOS推奨）
 - **対応OS**: Windows 10/11, macOS, Linux
 - **対応デバイス**: iPhone（Suica）・Android（NFC）
 

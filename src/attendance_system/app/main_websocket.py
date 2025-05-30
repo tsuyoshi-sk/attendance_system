@@ -19,8 +19,10 @@ import os
 from ..config.config import config
 from ..security.security_manager import SecurityManager
 from ..websocket.websocket_manager import WebSocketManager, create_websocket_server
-from .database import init_db
+from ..database import init_db
 from .middleware.security import add_security_middleware
+from ..api import admin_api
+from ..api import felica_api
 
 # ログ設定
 logging.basicConfig(
@@ -91,6 +93,10 @@ def create_app() -> FastAPI:
     
     # セキュリティミドルウェアの追加
     add_security_middleware(app, config)
+    
+    # APIルーターの追加
+    app.include_router(admin_api.router)
+    app.include_router(felica_api.router)
     
     # エラーハンドラーの設定
     setup_exception_handlers(app)
@@ -169,6 +175,11 @@ def setup_static_files(app: FastAPI):
         async def serve_pwa_app():
             index_path = os.path.join(static_dir, "index.html")
             return FileResponse(index_path, media_type="text/html")
+        
+        @app.get("/admin")
+        async def serve_admin_panel():
+            admin_path = os.path.join(static_dir, "admin.html")
+            return FileResponse(admin_path, media_type="text/html")
         
         logger.info(f"Static files mounted from: {static_dir}")
     else:

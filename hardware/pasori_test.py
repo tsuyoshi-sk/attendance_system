@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PaSoRi RC-S300 動作確認スクリプト
+PaSoRi RC-S380/RC-S300 動作確認スクリプト
 
 PaSoRiの接続確認とFeliCaカードの読み取りテストを行います。
 """
@@ -61,14 +61,14 @@ class PaSoRiTester:
             return True
         
         try:
-            print("PaSoRi RC-S300を検索中...")
+            print("PaSoRi RC-S380/RC-S300を検索中...")
             self.clf = nfc.ContactlessFrontend('usb')
-            print("PaSoRi RC-S300が見つかりました！")
+            print("PaSoRi RC-S380/RC-S300が見つかりました！")
             return True
         except Exception as e:
             print(f"エラー: PaSoRiの接続に失敗しました - {e}")
             print("\n以下を確認してください:")
-            print("1. PaSoRi RC-S300がUSBポートに接続されているか")
+            print("1. PaSoRi RC-S380/RC-S300がUSBポートに接続されているか")
             print("2. ドライバがインストールされているか")
             print("3. 他のアプリケーションがPaSoRiを使用していないか")
             if sys.platform == "linux":
@@ -200,7 +200,7 @@ class PaSoRiTester:
 
 def main():
     """メイン処理"""
-    print("=== PaSoRi RC-S300 動作確認ツール ===\n")
+    print("=== PaSoRi RC-S380/RC-S300 動作確認ツール ===\n")
     
     tester = PaSoRiTester()
     

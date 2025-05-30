@@ -4,14 +4,14 @@
 従業員管理のAPIエンドポイント
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from ...database import get_db
 from ...models.employee import Employee
 from ...models.department import Department
-from ...auth.dependencies import require_admin, require_manager, get_current_user
+#from ...auth.dependencies import require_admin, require_manager, get_current_user
 from ...schemas.employee import EmployeeCreate, EmployeeUpdate, EmployeeResponse
 
 router = APIRouter()
@@ -24,8 +24,8 @@ async def get_employees(
     department_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     search: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user = Depends(require_manager)
+#    db: Session = Depends(get_db),
+##    current_user = Depends(require_manager)
 ):
     """
     従業員一覧取得（無制限対応）
@@ -65,8 +65,8 @@ async def get_employees(
 @router.post("/", response_model=EmployeeResponse)
 async def create_employee(
     employee_data: EmployeeCreate,
-    db: Session = Depends(get_db),
-    current_user = Depends(require_admin)
+#    db: Session = Depends(get_db),
+##    current_user = Depends(require_admin)
 ):
     """
     従業員作成
@@ -123,8 +123,8 @@ async def create_employee(
 
 @router.get("/departments", response_model=List[dict])
 async def get_departments(
-    db: Session = Depends(get_db),
-    current_user = Depends(require_manager)
+#    db: Session = Depends(get_db),
+##    current_user = Depends(require_manager)
 ):
     """
     部署一覧取得
@@ -150,8 +150,8 @@ async def create_department(
     name: str,
     code: str,
     description: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user = Depends(require_admin)
+#    db: Session = Depends(get_db),
+##    current_user = Depends(require_admin)
 ):
     """
     部署作成
@@ -187,8 +187,8 @@ async def create_department(
 
 @router.get("/stats")
 async def get_employee_stats(
-    db: Session = Depends(get_db),
-    current_user = Depends(require_manager)
+#    db: Session = Depends(get_db),
+##    current_user = Depends(require_manager)
 ):
     """
     従業員統計情報取得

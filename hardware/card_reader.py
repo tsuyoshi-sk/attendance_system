@@ -1,7 +1,8 @@
 """
 カードリーダーモジュール
 
-PaSoRi RC-S300を使用したFeliCaカード読み取り機能を提供します。
+PaSoRi RC-S380/RC-S300を使用したFeliCaカード読み取り機能を提供します。
+RC-S380がmacOSでの推奨モデルです。
 """
 
 import logging
@@ -65,7 +66,7 @@ class CardReader:
         
         try:
             self.clf = nfc.ContactlessFrontend('usb')
-            logger.info("PaSoRi RC-S300に接続しました")
+            logger.info("PaSoRi RC-S380/RC-S300に接続しました")
             return True
         except Exception as e:
             logger.error(f"PaSoRiの接続に失敗しました: {e}")

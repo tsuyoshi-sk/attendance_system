@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+  <rect width="144" height="144" fill="#2563eb" rx="16"/>
+  <circle cx="72" cy="50" r="20" fill="white"/>
+  <rect x="52" y="80" width="40" height="4" fill="white" rx="2"/>
+  <rect x="42" y="90" width="60" height="4" fill="white" rx="2"/>
+  <rect x="52" y="100" width="40" height="4" fill="white" rx="2"/>
+  <text x="72" y="125" text-anchor="middle" fill="white" font-size="12" font-family="Arial">勤怠</text>
+</svg>

@@ -286,7 +286,7 @@ async def periodic_log_cleanup():
 app = FastAPI(
     title=f"{config.APP_NAME} Enhanced",
     version=config.APP_VERSION,
-    description="Enhanced PaSoRi RC-S300 勤怠管理システム with performance and security optimizations",
+    description="Enhanced PaSoRi RC-S380/RC-S300 勤怠管理システム with performance and security optimizations",
     lifespan=lifespan,
     docs_url="/docs" if config.DEBUG else None,
     redoc_url="/redoc" if config.DEBUG else None,

@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     
     # ログ設定
     LOG_LEVEL: str = "INFO"
-    LOG_FORMAT: str = "json"
+    LOG_FORMAT: str = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     LOG_DIR: str = "./logs"
     
     # データディレクトリ
@@ -139,6 +139,8 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'
+        # 余分な環境変数を無視して、アプリが死なないようにする
+        extra = "ignore"
     
     def __post_init__(self):
         """初期化後の処理"""
