@@ -120,6 +120,11 @@ venv.bak/
 *.db-journal
 *.db-wal
 *.db-shm
+attendance.db
+attendance_test.db
+test_service.db
+offline_punch_queue.db
+data/*.db
 
 # Logs
 *.log
@@ -181,6 +186,9 @@ data/*.sqlite3
 logs/*.log
 exports/*.csv
 exports/*.xlsx
+daily_report.csv
+*.csv
+!requirements.csv  # このファイルは除外しない
 
 # Temporary files
 *.tmp

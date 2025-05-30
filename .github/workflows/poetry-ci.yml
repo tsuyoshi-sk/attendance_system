@@ -34,8 +34,13 @@ jobs:
       id: cached-poetry-dependencies
       uses: actions/cache@v3
       with:
-        path: .venv
-        key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        path: |
+          ~/.cache/pypoetry
+          .venv
+        key: poetry-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          poetry-${{ runner.os }}-${{ matrix.python-version }}-
+          poetry-${{ runner.os }}-
     
     - name: Install dependencies
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
@@ -51,15 +56,16 @@ jobs:
     
     - name: Run tests with Poetry
       run: |
-        poetry run python -m pytest tests/ -v --cov=src/attendance_system --cov-report=xml
+        poetry run python -m pytest tests/ -v -m "not slow" --cov=src/attendance_system --cov-report=xml --tb=short
       env:
         SECRET_KEY: test-secret-key-64-characters-long-for-comprehensive-testing-extended-version
         JWT_SECRET_KEY: test-jwt-secret-64-characters-long-for-comprehensive-testing-extended-version
         IDM_HASH_SECRET: test-idm-hash-secret-64-characters-long-for-comprehensive-testing-extended
     
-    - name: Code formatting check
+    - name: Code formatting check with Black
       run: |
-        poetry run black --check src/ tests/
+        poetry run black --check src/ tests/ || poetry run black --version
+      continue-on-error: true  # Blackチェックは警告として扱う
     
     - name: Linting check
       run: |

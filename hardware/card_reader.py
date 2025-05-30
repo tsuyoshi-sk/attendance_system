@@ -8,7 +8,8 @@ RC-S380がmacOSでの推奨モデルです。
 import logging
 import time
 import hashlib
-from typing import Optional, Callable, Dict, Any
+import os
+from typing import Optional, Callable, Dict, Any, List
 from threading import Thread, Event
 
 try:
@@ -21,6 +22,17 @@ from config.config import config
 
 
 logger = logging.getLogger(__name__)
+
+# PaSoRiデバイスID設定（環境変数で上書き可能）
+PASORI_DEVICE_ID = os.getenv("PASORI_DEVICE_ID", "usb:054c:0dc9")  # デフォルト: RC-S300
+
+# フォールバックデバイスリスト（RC-S380優先）
+PASORI_FALLBACKS = [
+    "usb:054c:06c1",  # RC-S380/S
+    "usb:054c:06c3",  # RC-S380/P
+    "usb:054c:0dc9",  # RC-S300
+    "usb"             # 任意のUSBデバイス
+]
 
 
 class CardReaderError(Exception):
@@ -64,13 +76,28 @@ class CardReader:
             logger.info("モックモード: 仮想的にPaSoRiに接続しました")
             return True
         
-        try:
-            self.clf = nfc.ContactlessFrontend('usb')
-            logger.info("PaSoRi RC-S380/RC-S300に接続しました")
-            return True
-        except Exception as e:
-            logger.error(f"PaSoRiの接続に失敗しました: {e}")
-            return False
+        # デバイス接続を試行（環境変数優先、その後フォールバック）
+        device_list = [PASORI_DEVICE_ID] + PASORI_FALLBACKS
+        
+        for device_id in device_list:
+            try:
+                logger.debug(f"接続試行: {device_id}")
+                self.clf = nfc.ContactlessFrontend(device_id)
+                logger.info(f"PaSoRiに接続しました: {device_id}")
+                
+                # デバイス情報をログ出力
+                if hasattr(self.clf, 'device'):
+                    device = self.clf.device
+                    if hasattr(device, 'vendor_name') and hasattr(device, 'product_name'):
+                        logger.info(f"デバイス: {device.vendor_name} {device.product_name}")
+                
+                return True
+            except Exception as e:
+                logger.debug(f"{device_id} への接続失敗: {e}")
+                continue
+        
+        logger.error("PaSoRiの接続に失敗しました。RC-S380/RC-S300が接続されているか確認してください。")
+        return False
     
     def disconnect(self):
         """接続を切断"""

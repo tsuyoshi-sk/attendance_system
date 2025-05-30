@@ -22,7 +22,7 @@ from config.config import config
 from backend.app.database import init_db, get_db
 from backend.app.api import punch, admin, auth, reports, analytics
 from backend.app.health_check import get_integrated_health_status
-from backend.app.middleware.security import add_security_middleware
+from backend.app.middleware.security_async import add_security_middleware
 
 
 # ログ設定
