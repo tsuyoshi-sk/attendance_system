@@ -22,6 +22,7 @@ from .employee_card import (
     CardResponse,
     CardListResponse,
 )
+from .punch import PunchCreate, PunchTypeEnum
 
 __all__ = [
     # Employee schemas
@@ -41,4 +42,7 @@ __all__ = [
     "CardCreate",
     "CardResponse",
     "CardListResponse",
+    # Punch schemas
+    "PunchCreate",
+    "PunchTypeEnum",
 ]

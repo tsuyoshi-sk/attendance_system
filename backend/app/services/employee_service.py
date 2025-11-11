@@ -53,11 +53,14 @@ class EmployeeService:
                 raise ValueError(f"メールアドレス '{employee_data.email}' は既に使用されています")
         
         # 賃金情報の妥当性チェック
-        self._validate_wage_data(employee_data.wage_type, employee_data.hourly_rate, employee_data.monthly_salary)
+        normalized_wage_type = self._normalize_wage_type(employee_data.wage_type)
+        self._validate_wage_data(normalized_wage_type, employee_data.hourly_rate, employee_data.monthly_salary)
         
         # 従業員を作成
         try:
-            employee = Employee(**employee_data.model_dump())
+            employee_payload = employee_data.model_dump()
+            employee_payload["wage_type"] = normalized_wage_type
+            employee = Employee(**employee_payload)
             self.db.add(employee)
             self.db.commit()
             self.db.refresh(employee)
@@ -168,6 +171,8 @@ class EmployeeService:
         
         # 賃金情報の妥当性チェック
         if 'wage_type' in update_data or 'hourly_rate' in update_data or 'monthly_salary' in update_data:
+            if 'wage_type' in update_data:
+                update_data['wage_type'] = self._normalize_wage_type(update_data['wage_type'])
             wage_type = update_data.get('wage_type', employee.wage_type)
             hourly_rate = update_data.get('hourly_rate', employee.hourly_rate)
             monthly_salary = update_data.get('monthly_salary', employee.monthly_salary)
@@ -311,6 +316,24 @@ class EmployeeService:
         self.db.commit()
         logger.info(f"カードを論理削除しました: ID {card_id}")
         return True
+    
+    def _normalize_wage_type(self, wage_type: Any) -> WageType:
+        """
+        API層から渡される賃金タイプをORMの列挙体に正規化
+        """
+        if isinstance(wage_type, WageType):
+            return wage_type
+        if wage_type is None:
+            return WageType.MONTHLY
+        if hasattr(wage_type, "value"):
+            wage_type = wage_type.value
+        wage_str = str(wage_type).strip()
+        if not wage_str:
+            return WageType.MONTHLY
+        try:
+            return WageType[wage_str.upper()]
+        except KeyError as exc:
+            raise ValueError(f"無効な賃金タイプです: {wage_type}") from exc
     
     def _validate_wage_data(self, wage_type: WageType, hourly_rate: Optional[float], monthly_salary: Optional[int]):
         """

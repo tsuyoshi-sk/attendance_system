@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from backend.app.database import get_db
 from backend.app.models import Employee, PunchRecord, PunchType
 from backend.app.services.punch_service import PunchService
+from backend.app.schemas.punch import PunchCreate
 
 logger = logging.getLogger(__name__)
 
@@ -28,21 +29,15 @@ async def punch_health_check():
 
 @router.post("/", response_model=Dict[str, Any])
 async def create_punch(
-    card_idm: str,
-    punch_type: str,
+    payload: PunchCreate,
     db: Session = Depends(get_db),
-    device_type: Optional[str] = "pasori",
-    note: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     打刻を記録する
     
     Args:
-        card_idm: カードのIDm（ハッシュ化前）
-        punch_type: 打刻種別 ("in", "out", "outside", "return")
+        payload: 打刻リクエスト
         db: データベースセッション
-        device_type: デバイス種別
-        note: 備考
     
     Returns:
         Dict[str, Any]: 打刻結果
@@ -51,17 +46,19 @@ async def create_punch(
         HTTPException: エラー発生時
     """
     try:
-        # Convert string to PunchType enum
-        logger.debug(f"Received punch_type: {punch_type} (type: {type(punch_type)})")
-        punch_type_enum = PunchType(punch_type)
-        logger.debug(f"Converted to enum: {punch_type_enum} (value: {punch_type_enum.value})")
-        
         service = PunchService(db)
+
+        if not payload.card_idm:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="card_idmは必須です"
+            )
+
         result = await service.create_punch(
-            card_idm=card_idm,
-            punch_type=punch_type_enum,
-            device_type=device_type,
-            note=note
+            card_idm=payload.card_idm,
+            punch_type=PunchType(payload.punch_type.value),
+            device_type=payload.device_type or "pasori",
+            note=payload.note
         )
         return result
     except ValueError as e:

@@ -193,4 +193,3 @@ echo "プロジェクトパス: $(pwd)"
 # 追加の推奨事項
 if [ ! -f ".env" ] || grep -q "your-secret-key-change-in-production" .env 2>/dev/null; then
     echo -e "\n${YELLOW}重要: .envファイルのSECRET_KEYとIDM_HASH_SECRETを変更してください${NC}"
-fi

@@ -106,8 +106,8 @@ class WageCalculator:
         """
         if employee.wage_type == WageType.MONTHLY:
             # 月給制の場合
-            basic_wage = Decimal(str(employee.monthly_salary))
-            hourly_rate = basic_wage / self.standard_monthly_hours
+            basic_wage = self._to_decimal(employee.monthly_salary)
+            hourly_rate = basic_wage / self.standard_monthly_hours if basic_wage else Decimal("0")
         else:
             # 時給制の場合
             hourly_rate = self._calculate_hourly_rate(employee)
@@ -157,12 +157,21 @@ class WageCalculator:
             Decimal: 時給
         """
         if employee.wage_type == WageType.HOURLY:
-            return Decimal(str(employee.hourly_rate))
+            return self._to_decimal(employee.hourly_rate)
         elif employee.wage_type == WageType.MONTHLY:
             # 月給を標準労働時間で割って時給換算
-            return Decimal(str(employee.monthly_salary)) / self.standard_monthly_hours
+            monthly_salary = self._to_decimal(employee.monthly_salary)
+            return monthly_salary / self.standard_monthly_hours if monthly_salary else Decimal("0")
         else:
             raise ValueError(f"未対応の賃金タイプ: {employee.wage_type}")
+
+    def _to_decimal(self, value: Optional[Any]) -> Decimal:
+        """
+        None を 0 に変換して Decimal 化
+        """
+        if value is None:
+            return Decimal("0")
+        return Decimal(str(value))
     
     def _calculate_overtime_with_threshold(
         self,
@@ -238,7 +247,7 @@ class WageCalculator:
             "employee_name": employee.name,
             "year": year,
             "month": month,
-            "wage_type": employee.wage_type.value,
+            "wage_type": employee.wage_type.value.lower(),
             "work_days": summary_data.get("work_days", 0),
             "total_work_hours": summary_data.get("total_work_hours", 0),
             "overtime_hours": summary_data.get("overtime_hours", 0),

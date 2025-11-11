@@ -12,6 +12,11 @@ from sqlalchemy import desc, and_
 
 from config.config import config
 from backend.app.models import Employee, PunchRecord, PunchType
+from backend.app.utils.punch_helpers import (
+    DISPLAY_NAMES,
+    STATUS_MAP,
+    VALID_TRANSITIONS,
+)
 
 
 class PunchService:
@@ -108,17 +113,9 @@ class PunchService:
             if punch_type != PunchType.IN:
                 raise ValueError("本日の最初の打刻は出勤である必要があります")
             return
-        
-        # 打刻順序のルール
-        valid_transitions = {
-            PunchType.IN: [PunchType.OUTSIDE, PunchType.OUT],
-            PunchType.OUTSIDE: [PunchType.RETURN],
-            PunchType.RETURN: [PunchType.OUTSIDE, PunchType.OUT],
-            PunchType.OUT: [],  # 退勤後は打刻不可
-        }
-        
+
         last_type = PunchType(latest_punch.punch_type)
-        valid_next_types = valid_transitions.get(last_type, [])
+        valid_next_types = VALID_TRANSITIONS.get(last_type, [])
         
         if punch_type not in valid_next_types:
             raise ValueError(
@@ -128,13 +125,7 @@ class PunchService:
     
     def _get_punch_type_display(self, punch_type: PunchType) -> str:
         """打刻種別の表示名を取得"""
-        display_names = {
-            PunchType.IN: "出勤",
-            PunchType.OUT: "退勤",
-            PunchType.OUTSIDE: "外出",
-            PunchType.RETURN: "戻り",
-        }
-        return display_names.get(punch_type, punch_type.value)
+        return DISPLAY_NAMES.get(punch_type, punch_type.value)
     
     async def get_employee_status(self, employee_id: int) -> Dict[str, Any]:
         """
@@ -169,13 +160,7 @@ class PunchService:
         # 現在の状態を判定
         current_status = "未出勤"
         if latest_punch:
-            status_map = {
-                PunchType.IN.value: "勤務中",
-                PunchType.OUTSIDE.value: "外出中",
-                PunchType.RETURN.value: "勤務中",
-                PunchType.OUT.value: "退勤済",
-            }
-            current_status = status_map.get(latest_punch.punch_type, "不明")
+            current_status = STATUS_MAP.get(latest_punch.punch_type, "不明")
         
         return {
             "employee": employee.to_dict(),
