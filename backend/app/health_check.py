@@ -56,21 +56,32 @@ class HealthChecker:
     def __init__(self, db: Session):
         self.db = db
     
-    async def check_all(self) -> Dict[str, Any]:
+    def check_all(self) -> Dict[str, Any]:
         """全システムのヘルスチェックを実行"""
         start_time = datetime.now()
         
-        # 各サブシステムのチェックを並行実行
-        checks = await asyncio.gather(
-            self._check_database(),
-            self._check_punch_system(),
-            self._check_employee_system(),
-            self._check_report_system(),
-            self._check_analytics_system(),
-            self._check_pasori(),
-            self._check_file_system(),
-            return_exceptions=True
-        )
+        # 各サブシステムのチェックを逐次実行
+        checks = []
+        check_methods = [
+            self._check_database,
+            self._check_punch_system,
+            self._check_employee_system,
+            self._check_report_system,
+            self._check_analytics_system,
+            self._check_pasori,
+            self._check_file_system,
+        ]
+        
+        for check_method in check_methods:
+            try:
+                checks.append(check_method())
+            except Exception as e:
+                logger.error(f"ヘルスチェック '{check_method.__name__}' で例外発生: {e}")
+                checks.append(SubsystemHealth(
+                    name=check_method.__name__.replace("_check_", ""),
+                    status=HealthStatus.UNKNOWN,
+                    message=f"チェック中に例外が発生: {e}"
+                ))
         
         # 結果の集計
         subsystems = []
@@ -116,7 +127,7 @@ class HealthChecker:
             }
         }
     
-    async def _check_database(self) -> SubsystemHealth:
+    def _check_database(self) -> SubsystemHealth:
         """データベース接続チェック"""
         try:
             # 接続テスト
@@ -150,7 +161,7 @@ class HealthChecker:
                 f"データベース接続エラー: {str(e)}"
             )
     
-    async def _check_punch_system(self) -> SubsystemHealth:
+    def _check_punch_system(self) -> SubsystemHealth:
         """打刻システムチェック"""
         try:
             # 最新の打刻記録を確認
@@ -199,7 +210,7 @@ class HealthChecker:
                 f"チェックエラー: {str(e)}"
             )
     
-    async def _check_employee_system(self) -> SubsystemHealth:
+    def _check_employee_system(self) -> SubsystemHealth:
         """従業員管理システムチェック"""
         try:
             # アクティブな従業員数
@@ -247,7 +258,7 @@ class HealthChecker:
                 f"チェックエラー: {str(e)}"
             )
     
-    async def _check_report_system(self) -> SubsystemHealth:
+    def _check_report_system(self) -> SubsystemHealth:
         """レポートシステムチェック"""
         try:
             # 最新の日次集計
@@ -295,7 +306,7 @@ class HealthChecker:
                 f"チェックエラー: {str(e)}"
             )
     
-    async def _check_analytics_system(self) -> SubsystemHealth:
+    def _check_analytics_system(self) -> SubsystemHealth:
         """分析システムチェック"""
         try:
             # 分析用データの可用性チェック
@@ -331,7 +342,7 @@ class HealthChecker:
                 f"チェックエラー: {str(e)}"
             )
     
-    async def _check_pasori(self) -> SubsystemHealth:
+    def _check_pasori(self) -> SubsystemHealth:
         """PaSoRiデバイスチェック"""
         try:
             if config.PASORI_MOCK_MODE:
@@ -361,7 +372,7 @@ class HealthChecker:
                 f"デバイスエラー: {str(e)}"
             )
     
-    async def _check_file_system(self) -> SubsystemHealth:
+    def _check_file_system(self) -> SubsystemHealth:
         """ファイルシステムチェック"""
         try:
             issues = []
@@ -409,10 +420,10 @@ class HealthChecker:
 
 
 # FastAPI用のエンドポイント関数
-async def get_integrated_health_status(db: Session) -> Dict[str, Any]:
+def get_integrated_health_status(db: Session) -> Dict[str, Any]:
     """統合ヘルスチェックの実行"""
     checker = HealthChecker(db)
-    return await checker.check_all()
+    return checker.check_all()
 
 
 # 定期実行用の関数
@@ -424,7 +435,7 @@ async def periodic_health_check():
         try:
             db = SessionLocal()
             checker = HealthChecker(db)
-            result = await checker.check_all()
+            result = checker.check_all()
             
             # 異常時の通知
             if result["status"] != HealthStatus.HEALTHY.value:

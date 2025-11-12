@@ -198,7 +198,7 @@ async def integrated_health_check(db: Session = Depends(get_db)) -> Dict[str, An
         Dict[str, Any]: 統合システムの詳細な稼働状況
     """
     from backend.app.health_check import get_integrated_health_status
-    return await get_integrated_health_status(db)
+    return get_integrated_health_status(db)
 
 
 # 詳細情報エンドポイント
