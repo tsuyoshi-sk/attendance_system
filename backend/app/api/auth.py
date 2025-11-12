@@ -160,7 +160,7 @@ async def login(
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        expires_in=config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        expires_in=config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user_info=user_info
     )
 
@@ -204,7 +204,7 @@ async def login_form(
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        expires_in=config.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        expires_in=config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         user_info=user_info
     )
 

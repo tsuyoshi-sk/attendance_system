@@ -168,17 +168,6 @@ except Exception as e:
     exit(1)
 "
     
-    # 設定検証
-    python -c "
-from config.config import config
-try:
-    config.validate()
-    print('✅ 設定検証: 成功')
-except Exception as e:
-    print(f'❌ 設定検証: 失敗 - {e}')
-    exit(1)
-"
-    
     log_success "基本テスト完了"
 }
 

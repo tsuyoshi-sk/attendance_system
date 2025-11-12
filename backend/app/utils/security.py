@@ -291,7 +291,7 @@ class CryptoUtils:
             str: HMAC値
         """
         if key is None:
-            key = config.SECRET_KEY
+            key = config.JWT_SECRET_KEY
         
         return hmac.new(
             key.encode(),

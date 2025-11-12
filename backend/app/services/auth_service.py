@@ -164,7 +164,7 @@ class AuthService:
             str: JWTトークン
         """
         # トークンの有効期限
-        expire = datetime.utcnow() + timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.utcnow() + timedelta(minutes=config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
         
         # トークンペイロード
         payload = {
@@ -177,7 +177,7 @@ class AuthService:
         }
         
         # トークンを生成
-        token = jwt.encode(payload, config.SECRET_KEY, algorithm=config.JWT_ALGORITHM)
+        token = jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
         return token
     
     def verify_token(self, token: str) -> Optional[TokenPayload]:
@@ -191,7 +191,7 @@ class AuthService:
             TokenPayload: トークンペイロード、無効な場合はNone
         """
         try:
-            payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
+            payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
             return TokenPayload(**payload)
         except JWTError as e:
             logger.warning(f"トークン検証エラー: {str(e)}")

@@ -73,7 +73,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # トークンの検証
         try:
             # JWTデコード
-            payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
+            payload = jwt.decode(token, config.JWT_SECRET_KEY, algorithms=[config.JWT_ALGORITHM])
             
             # 有効期限チェック
             exp = payload.get("exp")

@@ -60,7 +60,7 @@ async def create_punch(
     try:
         service = PunchService(db)
 
-        result = service.create_punch(
+        result = await service.create_punch(
             card_idm=payload.card_idm,
             card_idm_hash=payload.card_idm_hash,
             punch_type=PunchType(payload.punch_type.value),
@@ -137,8 +137,8 @@ async def get_punch_status(
     """
     try:
         service = PunchService(db)
-        status = service.get_employee_status(employee_id)
-        return status
+        status_response = await service.get_employee_status(employee_id)
+        return status_response
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -172,7 +172,7 @@ async def get_punch_history(
     """
     try:
         service = PunchService(db)
-        history = service.get_punch_history(
+        history = await service.get_punch_history(
             employee_id=employee_id,
             date=date,
             limit=limit

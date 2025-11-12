@@ -158,10 +158,6 @@ async def lifespan(app: FastAPI):
     enhanced_logger.logger.info(f"{config.APP_NAME} v{config.APP_VERSION} starting with enhancements...")
     
     try:
-        # Validate configuration
-        config.validate()
-        enhanced_logger.logger.info("Configuration validated")
-        
         # Initialize database
         init_db()
         enhanced_logger.logger.info("Database initialized")

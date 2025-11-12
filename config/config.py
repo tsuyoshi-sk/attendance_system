@@ -11,7 +11,7 @@ from typing import Optional, List, Type, Union
 from datetime import time
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from dotenv import load_dotenv
 
 # 環境設定インポートを削除（存在しないため）
@@ -54,9 +54,6 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 60→15分に短縮
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    SECRET_KEY: str = Field(..., min_length=32)
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     BYPASS_AUTH: bool = False
     
     # API設定
@@ -151,26 +148,13 @@ class Settings(BaseSettings):
             return secrets.token_urlsafe(32)
         return v
     
-    @field_validator('SECRET_KEY')
-    @classmethod
-    def validate_secret_key(cls, v):
-        if v == "your-app-secret-key-here-change-in-production":
-            import secrets
-            return secrets.token_urlsafe(32)
-        return v
-    
-    def __post_init__(self):
-        """初期化後の処理"""
-        # データディレクトリの作成
+    @model_validator(mode='after')
+    def ensure_directories_and_validate(self):
+        """設定値の検証とディレクトリ作成"""
         Path(self.DATA_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.LOG_DIR).mkdir(parents=True, exist_ok=True)
-    
-    def validate(self):
-        """設定値の検証"""
-        errors = []
         
-        if len(self.SECRET_KEY) < 16:
-            errors.append("SECRET_KEY は16文字以上である必要があります")
+        errors = []
         
         if len(self.IDM_HASH_SECRET) < 8:
             errors.append("IDM_HASH_SECRET は8文字以上である必要があります")
@@ -180,6 +164,18 @@ class Settings(BaseSettings):
         
         if errors:
             raise ValueError("設定エラー: " + ", ".join(errors))
+        
+        return self
+    
+    @property
+    def SECRET_KEY(self) -> str:
+        """後方互換用: SECRET_KEY は JWT_SECRET_KEY と同一"""
+        return self.JWT_SECRET_KEY
+    
+    @property
+    def ACCESS_TOKEN_EXPIRE_MINUTES(self) -> int:
+        """後方互換用: 旧名称へのアクセス"""
+        return self.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
     
     def is_slack_enabled(self) -> bool:
         """Slack通知が有効かどうか"""

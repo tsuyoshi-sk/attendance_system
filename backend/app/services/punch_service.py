@@ -41,7 +41,7 @@ class PunchService:
     def __init__(self, db: Session):
         self.db = db
     
-    def create_punch(
+    async def create_punch(
         self,
         card_idm: Optional[str] = None,
         punch_type: PunchType = PunchType.IN,
@@ -231,7 +231,7 @@ class PunchService:
             return False
         return all(c in "0123456789abcdefABCDEF" for c in value)
     
-    def get_employee_status(self, employee_id: int) -> Dict[str, Any]:
+    async def get_employee_status(self, employee_id: int) -> Dict[str, Any]:
         """
         従業員の現在の打刻状況を取得
         
@@ -274,7 +274,7 @@ class PunchService:
             "remaining_punches": self._calculate_remaining_punches(employee_id, reference_time)
         }
     
-    def get_punch_history(
+    async def get_punch_history(
         self,
         employee_id: int,
         date: Optional[str] = None,

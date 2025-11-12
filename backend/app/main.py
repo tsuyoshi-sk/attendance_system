@@ -56,14 +56,6 @@ async def lifespan(app: FastAPI):
     # 起動時の処理
     logger.info(f"{config.APP_NAME} v{config.APP_VERSION} 起動中...")
     
-    # 設定の検証
-    try:
-        config.validate()
-        logger.info("設定の検証が完了しました")
-    except Exception as e:
-        logger.error(f"設定エラー: {e}")
-        raise
-    
     # データベースの初期化
     try:
         init_db()
