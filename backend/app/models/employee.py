@@ -57,7 +57,11 @@ class Employee(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # リレーション
-    department = relationship("Department", back_populates="employees")
+    department = relationship(
+        "Department",
+        back_populates="employees",
+        foreign_keys=[department_id]
+    )
     punch_records = relationship(
         "PunchRecord", 
         foreign_keys="PunchRecord.employee_id",

@@ -48,17 +48,19 @@ async def create_punch(
     try:
         service = PunchService(db)
 
-        if not payload.card_idm:
+        if not payload.card_idm and not payload.card_idm_hash:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="card_idmは必須です"
+                detail="card_idm または card_idm_hash は必須です"
             )
-
+        
         result = await service.create_punch(
             card_idm=payload.card_idm,
+            card_idm_hash=payload.card_idm_hash,
             punch_type=PunchType(payload.punch_type.value),
             device_type=payload.device_type or "pasori",
-            note=payload.note
+            note=payload.note,
+            timestamp=payload.timestamp
         )
         return result
     except ValueError as e:

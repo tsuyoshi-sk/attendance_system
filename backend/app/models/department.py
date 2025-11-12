@@ -35,7 +35,16 @@ class Department(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # リレーション
-    employees = relationship("Employee", back_populates="department")
+    employees = relationship(
+        "Employee",
+        back_populates="department",
+        foreign_keys="Employee.department_id"
+    )
+    manager = relationship(
+        "Employee",
+        foreign_keys=[manager_id],
+        post_update=True
+    )
     
     def __repr__(self) -> str:
         return f"<Department(id={self.id}, code={self.code}, name={self.name})>"
