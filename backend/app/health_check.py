@@ -11,7 +11,7 @@ from enum import Enum
 import logging
 from pathlib import Path
 
-from sqlalchemy import text, select, func
+from sqlalchemy import text, select, func, inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -135,9 +135,7 @@ class HealthChecker:
             result.scalar()
             
             # テーブル数の確認
-            tables = self.db.execute(text(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
-            )).scalar()
+            tables = len(inspect(self.db.bind).get_table_names())
             
             # レコード数の確認
             employee_count = self.db.query(func.count(Employee.id)).scalar()

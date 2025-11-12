@@ -54,7 +54,7 @@ class PunchService:
         打刻を作成
         """
         if not card_idm and not card_idm_hash:
-            raise PunchServiceError("INVALID_REQUEST", "card_idm もしくは card_idm_hash を指定してください")
+            raise PunchServiceError("INVALID_REQUEST_NO_ID", config.PUNCH_SERVICE_ERROR_MESSAGES['INVALID_REQUEST_NO_ID'])
         
         punch_time = timestamp or datetime.now()
         if card_idm_hash:
@@ -103,9 +103,9 @@ class PunchService:
         ).first()
         
         if not employee:
-            raise PunchServiceError("EMPLOYEE_NOT_FOUND", "未登録のカード、または無効な従業員です")
+            raise PunchServiceError("EMPLOYEE_NOT_FOUND", config.PUNCH_SERVICE_ERROR_MESSAGES['EMPLOYEE_NOT_FOUND'])
         if not employee.is_active:
-            raise PunchServiceError("EMPLOYEE_NOT_FOUND", "無効な従業員です")
+            raise PunchServiceError("INACTIVE_EMPLOYEE", config.PUNCH_SERVICE_ERROR_MESSAGES['INACTIVE_EMPLOYEE'])
         return employee
     
     def _prevent_duplicate_punch(self, employee_id: int, punch_time: datetime) -> None:
@@ -130,7 +130,7 @@ class PunchService:
         if delta.total_seconds() < self.MIN_PUNCH_INTERVAL_MINUTES * 60:
             raise PunchServiceError(
                 "DUPLICATE_PUNCH",
-                "重複打刻エラー: 3分以上待ってから再試行してください"
+                config.PUNCH_SERVICE_ERROR_MESSAGES['DUPLICATE_PUNCH']
             )
     
     def _enforce_daily_limits(self, employee_id: int, punch_type: PunchType, punch_time: datetime) -> None:
@@ -147,9 +147,13 @@ class PunchService:
         ).scalar() or 0
         
         if count >= limit:
+            message = config.PUNCH_SERVICE_ERROR_MESSAGES['DAILY_LIMIT_EXCEEDED'].format(
+                punch_type=DISPLAY_NAMES.get(punch_type, punch_type.value),
+                limit=limit
+            )
             raise PunchServiceError(
                 "DAILY_LIMIT_EXCEEDED",
-                f"日次制限エラー: {DISPLAY_NAMES.get(punch_type, punch_type.value)}は{limit}回までです"
+                message
             )
     
     def _validate_punch_sequence(self, employee_id: int, punch_type: PunchType, punch_time: datetime) -> None:
@@ -176,17 +180,20 @@ class PunchService:
         if not latest_punch:
             # 本日初めての打刻の場合、出勤のみ許可
             if punch_type != PunchType.IN:
-                raise PunchServiceError("INVALID_SEQUENCE", "本日の最初の打刻は出勤である必要があります")
+                raise PunchServiceError("INVALID_SEQUENCE_START", config.PUNCH_SERVICE_ERROR_MESSAGES['INVALID_SEQUENCE_START'])
             return
 
         last_type = PunchType(latest_punch.punch_type)
         valid_next_types = VALID_TRANSITIONS.get(last_type, [])
         
         if punch_type not in valid_next_types:
+            message = config.PUNCH_SERVICE_ERROR_MESSAGES['INVALID_SEQUENCE_TRANSITION'].format(
+                current_state=latest_punch.punch_type_display,
+                next_state=self._get_punch_type_display(punch_type)
+            )
             raise PunchServiceError(
                 "INVALID_SEQUENCE",
-                f"現在の状態（{latest_punch.punch_type_display}）では"
-                f"{self._get_punch_type_display(punch_type)}はできません"
+                message
             )
     
     def _get_punch_type_display(self, punch_type: PunchType) -> str:
@@ -247,7 +254,8 @@ class PunchService:
         ).first()
         
         if not employee:
-            raise PunchServiceError("EMPLOYEE_NOT_FOUND", f"従業員ID {employee_id} が見つかりません")
+            message = config.PUNCH_SERVICE_ERROR_MESSAGES['EMPLOYEE_ID_NOT_FOUND'].format(employee_id=employee_id)
+            raise PunchServiceError("EMPLOYEE_ID_NOT_FOUND", message)
         
         reference_time = datetime.now()
         day_start, day_end = self._get_day_range(reference_time)
@@ -297,7 +305,8 @@ class PunchService:
         ).first()
         
         if not employee:
-            raise ValueError(f"従業員ID {employee_id} が見つかりません")
+            message = config.PUNCH_SERVICE_ERROR_MESSAGES['EMPLOYEE_ID_NOT_FOUND'].format(employee_id=employee_id)
+            raise PunchServiceError("EMPLOYEE_ID_NOT_FOUND", message)
         
         # クエリ構築
         query = self.db.query(PunchRecord).filter(
@@ -315,7 +324,7 @@ class PunchService:
                     )
                 )
             except ValueError:
-                raise ValueError("日付は YYYY-MM-DD 形式で指定してください")
+                raise PunchServiceError("INVALID_DATE_FORMAT", config.PUNCH_SERVICE_ERROR_MESSAGES['INVALID_DATE_FORMAT'])
         
         # 履歴取得
         records = query.order_by(desc(PunchRecord.punch_time)).limit(limit).all()

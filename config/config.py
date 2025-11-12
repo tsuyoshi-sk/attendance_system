@@ -126,6 +126,19 @@ class Settings(BaseSettings):
     NFC_CARD_ID_SALT: str = "default-nfc-salt-key"
     OFFLINE_QUEUE_SIZE: int = 1000
     OFFLINE_RETRY_INTERVAL: int = 300
+
+    # エラーメッセージ設定
+    PUNCH_SERVICE_ERROR_MESSAGES: dict = {
+        "INVALID_REQUEST_NO_ID": "card_idm もしくは card_idm_hash を指定してください",
+        "EMPLOYEE_NOT_FOUND": "未登録のカード、または無効な従業員です",
+        "INACTIVE_EMPLOYEE": "無効な従業員です",
+        "DUPLICATE_PUNCH": "重複打刻エラー: 3分以上待ってから再試行してください",
+        "DAILY_LIMIT_EXCEEDED": "日次制限エラー: {punch_type}は{limit}回までです",
+        "INVALID_SEQUENCE_START": "本日の最初の打刻は出勤である必要があります",
+        "INVALID_SEQUENCE_TRANSITION": "現在の状態（{current_state}）では{next_state}はできません",
+        "EMPLOYEE_ID_NOT_FOUND": "従業員ID {employee_id} が見つかりません",
+        "INVALID_DATE_FORMAT": "日付は YYYY-MM-DD 形式で指定してください",
+    }
     
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
