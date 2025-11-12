@@ -86,14 +86,14 @@ def require_permission_or_bypass(permission: str):
             return current_user
             
         # 通常の権限チェック
-        if hasattr(current_user, 'get_permissions'):
-            if permission not in current_user.get_permissions():
+        if hasattr(await current_user, 'get_permissions'):
+            if permission not in await current_user.get_permissions():
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"権限 '{permission}' が必要です"
                 )
-        elif 'permissions' in current_user:
-            if permission not in current_user['permissions']:
+        elif 'permissions' in (await current_user):
+            if permission not in await current_user['permissions']:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"権限 '{permission}' が必要です"

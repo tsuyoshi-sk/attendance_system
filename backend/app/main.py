@@ -19,17 +19,30 @@ from config.config import config
 from backend.app.database import init_db, get_db
 from backend.app.api import punch, admin, auth, reports, analytics
 from backend.app.health_check import get_integrated_health_status
-from backend.app.middleware.security import add_security_middleware
+from backend.app.middleware.security_async import add_security_middleware
 
 
 # ログ設定
-logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL.upper()),
-    format=config.LOG_FORMAT,
-    handlers=[
-        logging.StreamHandler(),
-    ]
-)
+try:
+    # LOG_FORMATが存在しない場合のデフォルト値
+    log_format = getattr(config, 'LOG_FORMAT', '%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+    log_level = getattr(config, 'LOG_LEVEL', 'INFO').upper()
+    
+    logging.basicConfig(
+        level=getattr(logging, log_level, logging.INFO),
+        format=log_format,
+        handlers=[
+            logging.StreamHandler(),
+        ]
+    )
+except Exception as e:
+    # ログ設定が失敗した場合のフォールバック
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+    )
+    logging.warning(f"Failed to configure logging with config values: {e}")
+
 logger = logging.getLogger(__name__)
 
 
@@ -73,7 +86,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=config.APP_NAME,
     version=config.APP_VERSION,
-    description="PaSoRi RC-S300を使用した勤怠管理システムのAPIサーバー",
+    description="PaSoRi RC-S380/RC-S300を使用した勤怠管理システムのAPIサーバー",
     lifespan=lifespan,
     docs_url="/docs" if config.DEBUG else None,
     redoc_url="/redoc" if config.DEBUG else None,
@@ -101,13 +114,24 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """バリデーションエラーのカスタムハンドラー"""
+    sanitized_errors = []
+    for error in exc.errors():
+        error_copy = error.copy()
+        ctx = error_copy.get("ctx")
+        if ctx:
+            error_copy["ctx"] = {
+                key: str(value) if isinstance(value, Exception) else value
+                for key, value in ctx.items()
+            }
+        sanitized_errors.append(error_copy)
+    
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "error": {
                 "message": "入力データの検証エラー",
                 "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
-                "details": exc.errors(),
+                "details": sanitized_errors,
             }
         }
     )

@@ -4,7 +4,7 @@
 
 from datetime import date, datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, validator, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class CardCreate(BaseModel):
@@ -13,8 +13,9 @@ class CardCreate(BaseModel):
     card_nickname: Optional[str] = Field(None, max_length=50, description="カードのニックネーム")
     issued_date: Optional[date] = Field(None, description="発行日")
 
-    @validator('card_idm_hash')
-    def validate_hash(cls, v):
+    @field_validator('card_idm_hash')
+    @classmethod
+    def validate_hash(cls, v: str) -> str:
         # SHA256ハッシュの形式チェック（64文字の16進数）
         if len(v) != 64 or not all(c in '0123456789abcdef' for c in v.lower()):
             raise ValueError('カードIDmは正しくハッシュ化された値である必要があります')

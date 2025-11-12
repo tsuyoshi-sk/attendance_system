@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" fill="#2563eb" rx="20"/>
+  <circle cx="96" cy="70" r="25" fill="white"/>
+  <rect x="71" y="110" width="50" height="5" fill="white" rx="2"/>
+  <rect x="61" y="125" width="70" height="5" fill="white" rx="2"/>
+  <rect x="71" y="140" width="50" height="5" fill="white" rx="2"/>
+  <text x="96" y="170" text-anchor="middle" fill="white" font-size="16" font-family="Arial">勤怠管理</text>
+</svg>

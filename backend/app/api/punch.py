@@ -7,13 +7,23 @@
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
 from backend.app.models import Employee, PunchRecord, PunchType
-from backend.app.services.punch_service import PunchService
+from backend.app.services.punch_service import PunchService, PunchServiceError
 from backend.app.schemas.punch import PunchCreate
+from backend.app.utils import offline_queue_manager
+
+ERROR_STATUS_MAP = {
+    "EMPLOYEE_NOT_FOUND": status.HTTP_404_NOT_FOUND,
+    "DUPLICATE_PUNCH": status.HTTP_409_CONFLICT,
+    "DAILY_LIMIT_EXCEEDED": status.HTTP_429_TOO_MANY_REQUESTS,
+    "INVALID_SEQUENCE": status.HTTP_400_BAD_REQUEST,
+    "INVALID_REQUEST": status.HTTP_400_BAD_REQUEST,
+}
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +40,7 @@ async def punch_health_check():
 @router.post("/", response_model=Dict[str, Any])
 async def create_punch(
     payload: PunchCreate,
+    response: Response,
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
@@ -45,15 +56,10 @@ async def create_punch(
     Raises:
         HTTPException: エラー発生時
     """
+    start_time = datetime.now()
     try:
         service = PunchService(db)
 
-        if not payload.card_idm and not payload.card_idm_hash:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="card_idm または card_idm_hash は必須です"
-            )
-        
         result = await service.create_punch(
             card_idm=payload.card_idm,
             card_idm_hash=payload.card_idm_hash,
@@ -62,22 +68,52 @@ async def create_punch(
             note=payload.note,
             timestamp=payload.timestamp
         )
+        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
         return result
+    except PunchServiceError as e:
+        logger.warning(f"Punch service error: {e.code} - {e}")
+        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
+        status_code = ERROR_STATUS_MAP.get(e.code, status.HTTP_400_BAD_REQUEST)
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "error": {
+                    "error": e.code,
+                    "message": str(e)
+                }
+            }
+        )
+    except ConnectionError as e:
+        logger.error(f"Punch creation failed due to network error: {e}")
+        punch_time = payload.timestamp or datetime.now()
+        offline_queue_manager.add_punch({
+            "employee_id": None,
+            "punch_type": payload.punch_type.value,
+            "card_idm": payload.card_idm or payload.card_idm_hash,
+            "timestamp": punch_time.isoformat(),
+            "device_type": payload.device_type or "pasori",
+            "note": payload.note,
+        })
+        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
+        return {
+            "success": True,
+            "message": "オフラインモードで打刻を受け付けました。ネットワーク復旧後に自動同期します。",
+            "punch_record": {
+                "punch_type": payload.punch_type.value,
+                "timestamp": punch_time.isoformat(),
+                "is_offline": True
+            }
+        }
     except ValueError as e:
         logger.error(f"ValueError during processing: {e}")
-        # Check if it's enum conversion error
-        if "is not a valid PunchType" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid punch_type: {punch_type}. Valid values are: {[e.value for e in PunchType]}"
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(e)
-            )
+        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
         logger.error(f"Unexpected error during punch creation: {e}")
+        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"打刻処理中にエラーが発生しました: {str(e)}"
@@ -152,3 +188,15 @@ async def get_punch_history(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"履歴取得中にエラーが発生しました: {str(e)}"
         )
+
+
+@router.get("/offline/status", response_model=Dict[str, Any])
+async def get_offline_status() -> Dict[str, Any]:
+    """オフラインキューの状態を取得"""
+    stats = offline_queue_manager.get_stats()
+    status_text = "ready" if "error" not in stats else "error"
+    return {
+        "status": status_text,
+        "statistics": stats,
+        "timestamp": datetime.utcnow().isoformat()
+    }

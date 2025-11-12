@@ -4,7 +4,8 @@
 
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field, validator, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import ValidationInfo
 from enum import Enum
 
 
@@ -20,8 +21,9 @@ class UserLogin(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, description="ユーザー名")
     password: str = Field(..., min_length=8, description="パスワード")
 
-    @validator('username')
-    def validate_username(cls, v):
+    @field_validator('username')
+    @classmethod
+    def validate_username(cls, v: str) -> str:
         # ユーザー名は英数字とアンダースコアのみ
         if not all(c.isalnum() or c == '_' for c in v):
             raise ValueError('ユーザー名は英数字とアンダースコアのみ使用できます')
@@ -34,8 +36,9 @@ class PasswordChange(BaseModel):
     new_password: str = Field(..., min_length=8, description="新しいパスワード")
     confirm_password: str = Field(..., min_length=8, description="新しいパスワード（確認）")
 
-    @validator('new_password')
-    def validate_password_strength(cls, v):
+    @field_validator('new_password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
         # パスワードの強度チェック
         if not any(c.isupper() for c in v):
             raise ValueError('パスワードには大文字を含める必要があります')
@@ -47,9 +50,11 @@ class PasswordChange(BaseModel):
             raise ValueError('パスワードには記号を含める必要があります')
         return v
 
-    @validator('confirm_password')
-    def passwords_match(cls, v, values):
-        if 'new_password' in values and v != values['new_password']:
+    @field_validator('confirm_password')
+    @classmethod
+    def passwords_match(cls, v: str, info: ValidationInfo) -> str:
+        new_password = info.data.get('new_password')
+        if new_password is not None and v != new_password:
             raise ValueError('パスワードが一致しません')
         return v
 

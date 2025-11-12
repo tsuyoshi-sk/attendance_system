@@ -53,35 +53,35 @@ jobs:
       run: |
         export PYTHONPATH=${{ github.workspace }}/src
         python -c "
-import sys
-import os
-sys.path.insert(0, 'src')
-
-# 環境変数読み込み
-from dotenv import load_dotenv
-load_dotenv('.env.test')
-
-print('Testing with keys:')
-print(f'SECRET_KEY length: {len(os.getenv(\"SECRET_KEY\", \"\"))}')
-print(f'JWT_SECRET_KEY length: {len(os.getenv(\"JWT_SECRET_KEY\", \"\"))}')
-print(f'IDM_HASH_SECRET length: {len(os.getenv(\"IDM_HASH_SECRET\", \"\"))}')
-
-try:
-    from attendance_system.config.config import config
-    print('✅ Config import successful')
-except Exception as e:
-    print(f'❌ Config import failed: {e}')
-    sys.exit(1)
-
-try:
-    from attendance_system.security.security_manager import SecurityManager
-    sm = SecurityManager()
-    print('✅ SecurityManager created successfully')
-except Exception as e:
-    print(f'❌ SecurityManager failed: {e}')
-    sys.exit(1)
-
-print('✅ All basic tests passed')
+        import sys
+        import os
+        sys.path.insert(0, 'src')
+        
+        # 環境変数読み込み
+        from dotenv import load_dotenv
+        load_dotenv('.env.test')
+        
+        print('Testing with keys:')
+        print(f'SECRET_KEY length: {len(os.getenv(\"SECRET_KEY\", \"\"))}')
+        print(f'JWT_SECRET_KEY length: {len(os.getenv(\"JWT_SECRET_KEY\", \"\"))}')
+        print(f'IDM_HASH_SECRET length: {len(os.getenv(\"IDM_HASH_SECRET\", \"\"))}')
+        
+        try:
+            from attendance_system.config.config import config
+            print('✅ Config import successful')
+        except Exception as e:
+            print(f'❌ Config import failed: {e}')
+            sys.exit(1)
+        
+        try:
+            from attendance_system.security.security_manager import SecurityManager
+            sm = SecurityManager()
+            print('✅ SecurityManager created successfully')
+        except Exception as e:
+            print(f'❌ SecurityManager failed: {e}')
+            sys.exit(1)
+        
+        print('✅ All basic tests passed')
         "
 
     - name: Run pytest (if tests exist)

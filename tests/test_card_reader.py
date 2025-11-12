@@ -1,7 +1,7 @@
 """
 カードリーダーテスト
 
-PaSoRi RC-S300連携機能の包括的なテストケース
+PaSoRi RC-S380/RC-S300連携機能の包括的なテストケース
 """
 
 import pytest

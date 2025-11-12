@@ -8,7 +8,7 @@ import bcrypt
 from typing import Optional, Tuple
 import logging
 
-from attendance_system.config.config import settings
+from ..config.config import settings
 
 
 class SecureHashManager:

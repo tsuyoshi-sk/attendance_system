@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import logging
 
-from attendance_system.config.config import settings
+from ..config.config import settings
 
 
 class CryptographicManager:

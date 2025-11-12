@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勤怠管理 - 管理者画面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f7;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover { background: #0056CC; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th { background: #f8f9fa; }
+        .status-active { color: #28a745; }
+        .status-inactive { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 勤怠管理システム - 管理者画面</h1>
+            <p>システム統計とユーザー管理</p>
+        </div>
+
+        <div class="grid">
+            <!-- 統計カード -->
+            <div class="card">
+                <h2>📊 今日の統計</h2>
+                <div id="todayStats">
+                    <p>出勤者数: <span id="checkedInCount">-</span>人</p>
+                    <p>勤怠記録: <span id="totalRecords">-</span>件</p>
+                    <p>登録ユーザー: <span id="totalUsers">-</span>人</p>
+                </div>
+            </div>
+
+            <!-- ユーザー登録 -->
+            <div class="card">
+                <h2>👤 新規ユーザー登録</h2>
+                <form id="userForm">
+                    <input type="text" id="userName" placeholder="氏名" required style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <input type="text" id="employeeId" placeholder="社員ID" required style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <input type="text" id="department" placeholder="部署" style="width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <button type="submit" class="btn">ユーザー登録</button>
+                </form>
+            </div>
+
+            <!-- Suica登録 -->
+            <div class="card">
+                <h2>📱 Suica登録</h2>
+                <p>ユーザーを選択してSuicaをタッチしてください</p>
+                <select id="userSelect" style="width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">ユーザーを選択</option>
+                </select>
+                <button id="suicaRegisterBtn" class="btn">Suica登録開始</button>
+                <div id="suicaStatus" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <!-- ユーザー一覧 -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>👥 ユーザー一覧</h2>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>氏名</th>
+                        <th>社員ID</th>
+                        <th>部署</th>
+                        <th>Suica登録</th>
+                        <th>最終出勤</th>
+                        <th>状態</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 勤怠記録 -->
+        <div class="card" style="margin-top: 20px;">
+            <h2>📋 最新勤怠記録</h2>
+            <table id="attendanceTable">
+                <thead>
+                    <tr>
+                        <th>日時</th>
+                        <th>ユーザー</th>
+                        <th>種別</th>
+                        <th>場所</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        class AdminSystem {
+            constructor() {
+                this.wsUrl = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                this.wsUrl += `//${window.location.host}/ws`;
+                this.loadData();
+                this.setupEventListeners();
+            }
+
+            async loadData() {
+                await this.loadStats();
+                await this.loadUsers();
+                await this.loadAttendanceRecords();
+            }
+
+            async loadStats() {
+                try {
+                    const response = await fetch('/api/admin/stats');
+                    const stats = await response.json();
+                    
+                    document.getElementById('checkedInCount').textContent = stats.checked_in_count || 0;
+                    document.getElementById('totalRecords').textContent = stats.total_records || 0;
+                    document.getElementById('totalUsers').textContent = stats.total_users || 0;
+                } catch (error) {
+                    console.error('統計読み込みエラー:', error);
+                }
+            }
+
+            async loadUsers() {
+                try {
+                    const response = await fetch('/api/admin/users');
+                    const users = await response.json();
+                    
+                    this.renderUsersTable(users);
+                    this.renderUserSelect(users);
+                } catch (error) {
+                    console.error('ユーザー読み込みエラー:', error);
+                }
+            }
+
+            renderUsersTable(users) {
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = users.map(user => `
+                    <tr>
+                        <td>${user.name}</td>
+                        <td>${user.employee_id}</td>
+                        <td>${user.department || '-'}</td>
+                        <td>${user.suica_registered ? '✅ 登録済み' : '❌ 未登録'}</td>
+                        <td>${user.last_attendance || '-'}</td>
+                        <td class="${user.is_active ? 'status-active' : 'status-inactive'}">
+                            ${user.is_active ? '有効' : '無効'}
+                        </td>
+                        <td>
+                            <button class="btn" onclick="admin.editUser(${user.id})">編集</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            renderUserSelect(users) {
+                const select = document.getElementById('userSelect');
+                select.innerHTML = '<option value="">ユーザーを選択</option>' + 
+                    users.map(user => `<option value="${user.id}">${user.name} (${user.employee_id})</option>`).join('');
+            }
+
+            async loadAttendanceRecords() {
+                try {
+                    const response = await fetch('/api/admin/attendance?limit=20');
+                    const records = await response.json();
+                    
+                    const tbody = document.getElementById('attendanceTableBody');
+                    tbody.innerHTML = records.map(record => `
+                        <tr>
+                            <td>${new Date(record.timestamp).toLocaleString('ja-JP')}</td>
+                            <td>${record.user_name || '不明'}</td>
+                            <td>${record.type === 'check_in' ? '🟢 出勤' : '🔴 退勤'}</td>
+                            <td>${record.location}</td>
+                        </tr>
+                    `).join('');
+                } catch (error) {
+                    console.error('勤怠記録読み込みエラー:', error);
+                }
+            }
+
+            setupEventListeners() {
+                // ユーザー登録フォーム
+                document.getElementById('userForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await this.registerUser();
+                });
+
+                // Suica登録
+                document.getElementById('suicaRegisterBtn').addEventListener('click', () => {
+                    this.startSuicaRegistration();
+                });
+            }
+
+            async registerUser() {
+                const formData = {
+                    name: document.getElementById('userName').value,
+                    employee_id: document.getElementById('employeeId').value,
+                    department: document.getElementById('department').value
+                };
+
+                try {
+                    const response = await fetch('/api/admin/users', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+
+                    if (response.ok) {
+                        alert('ユーザー登録完了');
+                        document.getElementById('userForm').reset();
+                        this.loadUsers();
+                    } else {
+                        throw new Error('登録失敗');
+                    }
+                } catch (error) {
+                    alert('登録エラー: ' + error.message);
+                }
+            }
+
+            startSuicaRegistration() {
+                const userId = document.getElementById('userSelect').value;
+                if (!userId) {
+                    alert('ユーザーを選択してください');
+                    return;
+                }
+
+                const statusDiv = document.getElementById('suicaStatus');
+                statusDiv.innerHTML = '📱 Suicaをタッチしてください...';
+
+                // Web NFC API でSuica読み取り
+                if ('NDEFReader' in window) {
+                    this.readSuicaNFC(userId);
+                } else {
+                    // フォールバック: WebSocket経由での登録
+                    this.registerSuicaWebSocket(userId);
+                }
+            }
+
+            async readSuicaNFC(userId) {
+                try {
+                    const ndef = new NDEFReader();
+                    await ndef.scan();
+
+                    ndef.addEventListener('reading', async ({ message, serialNumber }) => {
+                        const suicaIdm = serialNumber;
+                        await this.registerSuicaId(userId, suicaIdm);
+                    });
+
+                } catch (error) {
+                    console.error('NFC読み取りエラー:', error);
+                    document.getElementById('suicaStatus').innerHTML = '❌ NFC読み取りに失敗しました';
+                }
+            }
+
+            async registerSuicaId(userId, suicaIdm) {
+                try {
+                    const response = await fetch('/api/admin/suica/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, suica_idm: suicaIdm })
+                    });
+
+                    if (response.ok) {
+                        document.getElementById('suicaStatus').innerHTML = '✅ Suica登録完了';
+                        this.loadUsers();
+                    } else {
+                        throw new Error('Suica登録失敗');
+                    }
+                } catch (error) {
+                    document.getElementById('suicaStatus').innerHTML = '❌ 登録エラー: ' + error.message;
+                }
+            }
+        }
+
+        // 管理システム初期化
+        const admin = new AdminSystem();
+    </script>
+</body>
+</html>

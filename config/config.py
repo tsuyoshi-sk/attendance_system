@@ -11,7 +11,7 @@ from typing import Optional, List, Type, Union
 from datetime import time
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import validator, Field
+from pydantic import Field, field_validator
 from dotenv import load_dotenv
 
 # 環境設定インポートを削除（存在しないため）
@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
     
     # 基本設定
@@ -105,7 +106,7 @@ class Settings(BaseSettings):
     
     # ログ設定
     LOG_LEVEL: str = "INFO"
-    LOG_FORMAT: str = "json"
+    LOG_FORMAT: str = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     LOG_DIR: str = "./logs"
     LOG_FILE_MAX_BYTES: int = 10 * 1024 * 1024
     LOG_FILE_BACKUP_COUNT: int = 5
@@ -129,7 +130,8 @@ class Settings(BaseSettings):
     OFFLINE_QUEUE_SIZE: int = 1000
     OFFLINE_RETRY_INTERVAL: int = 300
     
-    @validator('CORS_ORIGINS', pre=True)
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
             value = v.strip()
@@ -141,14 +143,16 @@ class Settings(BaseSettings):
                 return [origin.strip() for origin in value.split(',') if origin.strip()]
         return v
     
-    @validator('JWT_SECRET_KEY')
+    @field_validator('JWT_SECRET_KEY')
+    @classmethod
     def validate_jwt_secret(cls, v):
         if v == "your-secret-key-here-change-in-production":
             import secrets
             return secrets.token_urlsafe(32)
         return v
     
-    @validator('SECRET_KEY')
+    @field_validator('SECRET_KEY')
+    @classmethod
     def validate_secret_key(cls, v):
         if v == "your-app-secret-key-here-change-in-production":
             import secrets

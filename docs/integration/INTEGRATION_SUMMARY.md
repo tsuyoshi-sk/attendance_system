@@ -98,7 +98,7 @@
 │            SQLite Database                   │
 └─────────────────────────────────────────────┘
          ↓                    ↓
-    PaSoRi RC-S300      Batch Scheduler
+    PaSoRi RC-S380      Batch Scheduler
 ```
 
 ## 📈 パフォーマンス指標
@@ -189,7 +189,7 @@
 - **Backend**: FastAPI + SQLAlchemy
 - **Database**: SQLite（本番ではPostgreSQL推奨）
 - **Authentication**: JWT
-- **Hardware**: PaSoRi RC-S300
+- **Hardware**: PaSoRi RC-S380 (macOS推奨)
 - **Testing**: pytest
 - **Documentation**: OpenAPI/Swagger
 

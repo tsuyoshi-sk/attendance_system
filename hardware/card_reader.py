@@ -1,13 +1,15 @@
 """
 カードリーダーモジュール
 
-PaSoRi RC-S300を使用したFeliCaカード読み取り機能を提供します。
+PaSoRi RC-S380/RC-S300を使用したFeliCaカード読み取り機能を提供します。
+RC-S380がmacOSでの推奨モデルです。
 """
 
 import logging
 import time
 import hashlib
-from typing import Optional, Callable, Dict, Any
+import os
+from typing import Optional, Callable, Dict, Any, List
 from threading import Thread, Event
 
 try:
@@ -20,6 +22,17 @@ from config.config import config
 
 
 logger = logging.getLogger(__name__)
+
+# PaSoRiデバイスID設定（環境変数で上書き可能）
+PASORI_DEVICE_ID = os.getenv("PASORI_DEVICE_ID", "usb:054c:0dc9")  # デフォルト: RC-S300
+
+# フォールバックデバイスリスト（RC-S380優先）
+PASORI_FALLBACKS = [
+    "usb:054c:06c1",  # RC-S380/S
+    "usb:054c:06c3",  # RC-S380/P
+    "usb:054c:0dc9",  # RC-S300
+    "usb"             # 任意のUSBデバイス
+]
 
 
 class CardReaderError(Exception):
@@ -47,38 +60,31 @@ class CardReader:
         Args:
             on_card_detected: カード検出時のコールバック関数
         """
-        self.clf = None
+        self.backend = None
         self.on_card_detected = on_card_detected
         self.is_running = False
         self.stop_event = Event()
         self.reader_thread = None
-        self.mock_mode = config.PASORI_MOCK_MODE or not NFC_AVAILABLE
         
-        if self.mock_mode:
-            logger.info("カードリーダーはモックモードで動作します")
+        # バックエンドの初期化
+        from .pasori_backend import get_pasori_backend
+        self.backend = get_pasori_backend()
     
     def connect(self) -> bool:
         """リーダーに接続"""
-        if self.mock_mode:
-            logger.info("モックモード: 仮想的にPaSoRiに接続しました")
-            return True
-        
-        try:
-            self.clf = nfc.ContactlessFrontend('usb')
-            logger.info("PaSoRi RC-S300に接続しました")
-            return True
-        except Exception as e:
-            logger.error(f"PaSoRiの接続に失敗しました: {e}")
-            return False
+        if self.backend:
+            success = self.backend.connect()
+            if success:
+                device_info = self.backend.get_device_info()
+                logger.info(f"Connected to {device_info.get('backend', 'Unknown')} reader")
+                logger.debug(f"Device info: {device_info}")
+            return success
+        return False
     
     def disconnect(self):
         """接続を切断"""
-        if self.clf and not self.mock_mode:
-            try:
-                self.clf.close()
-                logger.info("PaSoRiとの接続を切断しました")
-            except Exception as e:
-                logger.error(f"切断中にエラーが発生しました: {e}")
+        if self.backend:
+            self.backend.disconnect()
     
     def read_card_once(self, timeout: Optional[int] = None) -> Optional[Dict[str, Any]]:
         """
@@ -93,30 +99,23 @@ class CardReader:
         if timeout is None:
             timeout = config.PASORI_TIMEOUT
         
-        if self.mock_mode:
-            # モックモードでは固定のカード情報を返す
-            logger.info("モックモード: 仮想カードを読み取りました")
-            return {
-                "idm": "0123456789ABCDEF",
-                "idm_hash": self.hash_idm("0123456789ABCDEF"),
-                "pmm": "0011223344556677",
-                "type": "FeliCa",
-                "timestamp": time.time()
-            }
-        
-        def on_connect(tag):
-            return tag
-        
-        start_time = time.time()
+        if not self.backend:
+            logger.error("Backend not initialized")
+            return None
         
         try:
-            tag = self.clf.connect(
-                rdwr={'on-connect': on_connect},
-                terminate=lambda: time.time() - start_time > timeout
-            )
+            card = self.backend.sense(timeout=float(timeout))
             
-            if tag:
-                return self._process_tag(tag)
+            if card:
+                idm = card.idm.hex().upper()
+                return {
+                    "idm": idm,
+                    "idm_hash": self.hash_idm(idm),
+                    "pmm": card.pmm.hex().upper() if card.pmm else None,
+                    "system_code": card.system_code,
+                    "type": "FeliCa",
+                    "timestamp": time.time()
+                }
             else:
                 logger.debug("タイムアウト: カードが検出されませんでした")
                 return None
@@ -125,24 +124,6 @@ class CardReader:
             logger.error(f"カード読み取り中にエラーが発生しました: {e}")
             return None
     
-    def _process_tag(self, tag) -> Dict[str, Any]:
-        """タグ情報を処理"""
-        idm = tag.idm.hex().upper() if hasattr(tag, 'idm') else None
-        
-        if not idm:
-            logger.error("IDmが取得できませんでした")
-            return None
-        
-        card_info = {
-            "idm": idm,
-            "idm_hash": self.hash_idm(idm),
-            "pmm": tag.pmm.hex().upper() if hasattr(tag, 'pmm') else None,
-            "type": tag.type if hasattr(tag, 'type') else "Unknown",
-            "timestamp": time.time()
-        }
-        
-        logger.info(f"カード検出: IDm={idm[:8]}...")
-        return card_info
     
     def hash_idm(self, idm: str) -> str:
         """IDmをハッシュ化"""

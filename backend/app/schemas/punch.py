@@ -6,6 +6,7 @@ from enum import Enum
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
+from pydantic import ValidationInfo
 
 
 class PunchTypeEnum(str, Enum):
@@ -31,3 +32,16 @@ class PunchCreate(BaseModel):
         if isinstance(value, str):
             return value.lower()
         return value
+    
+    @field_validator("card_idm")
+    @classmethod
+    def validate_card_idm(cls, value: Optional[str], info: ValidationInfo) -> Optional[str]:
+        if value is None:
+            return value
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("card_idmは必須です")
+        allowed_lengths = {16, 32, 64}
+        if len(normalized) not in allowed_lengths or not all(c in "0123456789abcdefABCDEF" for c in normalized):
+            raise ValueError("card_idmは16進数で指定してください")
+        return normalized.lower()
