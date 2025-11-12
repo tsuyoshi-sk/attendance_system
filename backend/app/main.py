@@ -15,14 +15,11 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 
-# sys.path hackを完全に削除
-
-# 相対インポートに変更
-from ...config.config import config
-from .database import init_db, get_db
-from .api import punch, admin, auth, reports, analytics
-from .health_check import get_integrated_health_status
-from .middleware.security import add_security_middleware
+from config.config import config
+from backend.app.database import init_db, get_db
+from backend.app.api import punch, admin, auth, reports, analytics
+from backend.app.health_check import get_integrated_health_status
+from backend.app.middleware.security import add_security_middleware
 
 
 # ログ設定

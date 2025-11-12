@@ -244,3 +244,7 @@ local/
 logs/
 *.log
 EOF < /dev/null
+# テスト用DBファイル
+test.db
+test_service.db
+attendance_test.db

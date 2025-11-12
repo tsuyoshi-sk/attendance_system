@@ -27,10 +27,12 @@ class PunchService:
     
     async def create_punch(
         self,
-        card_idm: str,
-        punch_type: PunchType,
+        card_idm: Optional[str] = None,
+        punch_type: PunchType = PunchType.IN,
         device_type: str = "pasori",
-        note: Optional[str] = None
+        note: Optional[str] = None,
+        card_idm_hash: Optional[str] = None,
+        timestamp: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """
         打刻を作成
@@ -40,6 +42,12 @@ class PunchService:
             punch_type: 打刻種別
             device_type: デバイス種別
             note: 備考
+            card_idm: 生のカードIDm
+            punch_type: 打刻種別
+            device_type: デバイス種別
+            note: 備考
+            card_idm_hash: 事前にハッシュ化されたカードIDm
+            timestamp: 打刻時刻を指定する場合
         
         Returns:
             Dict[str, Any]: 打刻結果
@@ -47,10 +55,16 @@ class PunchService:
         Raises:
             ValueError: バリデーションエラー
         """
+        if not card_idm and not card_idm_hash:
+            raise ValueError("card_idm もしくは card_idm_hash を指定してください")
+        
         # IDmのハッシュ化
-        idm_hash = hashlib.sha256(
-            f"{card_idm}{config.IDM_HASH_SECRET}".encode()
-        ).hexdigest()
+        if card_idm_hash:
+            idm_hash = card_idm_hash.lower()
+        else:
+            idm_hash = hashlib.sha256(
+                f"{card_idm}{config.IDM_HASH_SECRET}".encode()
+            ).hexdigest()
         
         # 従業員の検索
         employee = self.db.query(Employee).filter(
@@ -68,7 +82,7 @@ class PunchService:
         punch_record = PunchRecord(
             employee_id=employee.id,
             punch_type=punch_type.value,
-            punch_time=datetime.now(),
+            punch_time=timestamp or datetime.now(),
             device_type=device_type,
             note=note
         )

@@ -7,10 +7,10 @@
 import os
 import json
 import logging
-from typing import Optional, List, Type
+from typing import Optional, List, Type, Union
 from datetime import time
 from pathlib import Path
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import validator, Field
 from dotenv import load_dotenv
 
@@ -33,6 +33,11 @@ else:
 class Settings(BaseSettings):
     """アプリケーション設定クラス"""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
+    
     # 基本設定
     APP_NAME: str = "勤怠管理システム"
     APP_VERSION: str = "1.0.0"
@@ -44,19 +49,20 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False
     
     # セキュリティ設定
-    JWT_SECRET_KEY: str = Field(..., min_length=64)  # 32→64文字に強化
+    JWT_SECRET_KEY: str = Field(default="development-jwt-secret-key-change-me-please", min_length=32)
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 60→15分に短縮
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     SECRET_KEY: str = Field(..., min_length=32)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    BYPASS_AUTH: bool = False
     
     # API設定
     API_V1_PREFIX: str = "/api/v1"
     
     # CORS設定
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:8000"]
     CORS_CREDENTIALS: bool = True
     SECURITY_HEADERS_ENABLED: bool = True
     
@@ -93,11 +99,16 @@ class Settings(BaseSettings):
     SLACK_ENABLED: bool = False
     SLACK_TOKEN: str = ""
     SLACK_CHANNEL: str = "#attendance-alerts"
+    SLACK_WEBHOOK_URL: Optional[str] = None
+    SLACK_USERNAME: str = "勤怠管理Bot"
+    SLACK_ICON_EMOJI: str = ":clock9:"
     
     # ログ設定
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
     LOG_DIR: str = "./logs"
+    LOG_FILE_MAX_BYTES: int = 10 * 1024 * 1024
+    LOG_FILE_BACKUP_COUNT: int = 5
     
     # データディレクトリ
     DATA_DIR: str = "./data"
@@ -109,17 +120,25 @@ class Settings(BaseSettings):
     # 監視設定
     ENABLE_MONITORING: bool = True
     MONITORING_INTERVAL_SECONDS: int = 60
+    DAILY_BATCH_TIME: str = "23:00"
+    MONTHLY_BATCH_DAY: int = 25
+    TIMEZONE: str = "Asia/Tokyo"
     
     # NFC セキュリティ設定
     NFC_CARD_ID_SALT: str = "default-nfc-salt-key"
+    OFFLINE_QUEUE_SIZE: int = 1000
+    OFFLINE_RETRY_INTERVAL: int = 300
     
     @validator('CORS_ORIGINS', pre=True)
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
+            value = v.strip()
+            if not value:
+                return []
             try:
-                return json.loads(v)
-            except:
-                return v.split(',')
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return [origin.strip() for origin in value.split(',') if origin.strip()]
         return v
     
     @validator('JWT_SECRET_KEY')
@@ -135,10 +154,6 @@ class Settings(BaseSettings):
             import secrets
             return secrets.token_urlsafe(32)
         return v
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
     
     def __post_init__(self):
         """初期化後の処理"""
@@ -173,11 +188,6 @@ class Settings(BaseSettings):
     def get_database_url(self) -> str:
         """データベースURLを取得"""
         return self.DATABASE_URL
-    
-    @property
-    def JWT_ALGORITHM(self) -> str:
-        """JWT署名アルゴリズム"""
-        return "HS256"
 
 
 # 環境別設定は単純化されたため削除
