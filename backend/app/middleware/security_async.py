@@ -18,18 +18,50 @@ logger = logging.getLogger(__name__)
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """セキュリティヘッダーを追加するミドルウェア"""
-    
+
+    # 公開パス（認証なしでアクセス可能なパス）
+    PUBLIC_PATHS = {
+        "/",
+        "/health",
+        "/health/integrated",
+        "/info",
+        "/openapi.json",
+        "/docs",
+        "/docs/",
+        "/docs/oauth2-redirect",
+        "/redoc",
+        "/redoc/",
+    }
+
     def __init__(self, app, settings):
         super().__init__(app)
         self.settings = settings
-    
+
+    def _is_public_path(self, path: str) -> bool:
+        """パスが公開パスかどうかを判定"""
+        # 完全一致チェック
+        if path in self.PUBLIC_PATHS:
+            return True
+
+        # 静的アセット（Swagger UI用）
+        if path.startswith("/static") or path.startswith("/assets"):
+            return True
+
+        return False
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """リクエストを処理しセキュリティヘッダーを追加"""
         try:
             # リクエストIDを生成して追加
             request_id = str(uuid.uuid4())
             request.state.request_id = request_id
-            
+
+            # 公開パスの場合はそのまま通す
+            if self._is_public_path(request.url.path):
+                response = await call_next(request)
+                response.headers["X-Request-ID"] = request_id
+                return response
+
             # レスポンスを取得
             response = await call_next(request)
             

@@ -277,36 +277,63 @@ async def get_employee_monthly_report(
 
 @router.get("/export/daily/csv")
 async def export_daily_csv(
-    from_date: date,
-    to_date: date,
+    date: Optional[date] = None,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
     employee_ids: Optional[List[str]] = None,
     db: Session = Depends(get_db)
 ) -> Response:
     """
     日次レポートをCSV形式でエクスポート
-    
+
     Args:
-        from_date: 開始日
-        to_date: 終了日
+        date: 単一日指定（from_date/to_dateと排他）
+        from_date: 開始日（dateと排他）
+        to_date: 終了日（dateと排他）
         employee_ids: 従業員IDリスト（省略時は全員）
         db: データベースセッション
-    
+
     Returns:
         Response: CSVファイル
+
+    Raises:
+        HTTPException: パラメータが不正な場合
     """
+    # パラメータバリデーション
+    if date is not None:
+        if from_date is not None or to_date is not None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="dateパラメータとfrom_date/to_dateパラメータは同時に指定できません"
+            )
+        # 単一日指定の場合
+        actual_from_date = date
+        actual_to_date = date
+        filename = f"daily_{date}.csv"
+    elif from_date is not None and to_date is not None:
+        # 期間指定の場合
+        actual_from_date = from_date
+        actual_to_date = to_date
+        filename = f"daily_{from_date}_{to_date}.csv"
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="dateパラメータ、またはfrom_dateとto_dateの両方を指定してください"
+        )
+
     try:
         export_service = ExportService(db)
         csv_content = await export_service.export_daily_csv(
-            from_date=from_date,
-            to_date=to_date,
+            from_date=actual_from_date,
+            to_date=actual_to_date,
             employee_ids=employee_ids
         )
-        
+
         return Response(
             content=csv_content,
             media_type="text/csv",
             headers={
-                "Content-Disposition": f"attachment; filename=daily_report_{from_date}_{to_date}.csv"
+                "Content-Disposition": f"attachment; filename={filename}"
             }
         )
     except ValueError as e:

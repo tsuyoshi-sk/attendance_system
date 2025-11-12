@@ -94,7 +94,7 @@ class Employee(Base):
             "name": self.name,
             "name_kana": self.name_kana,
             "email": self.email,
-            "department": self.department,
+            "department": self.department.name if self.department else None,
             "position": self.position,
             "employment_type": self.employment_type,
             "hire_date": self.hire_date.isoformat() if self.hire_date else None,

@@ -6,7 +6,7 @@
 
 from datetime import date
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, status, Query, Response
+from fastapi import APIRouter, HTTPException, status, Query, Response, Depends
 from sqlalchemy.orm import Session
 import hashlib
 import logging
@@ -41,8 +41,8 @@ async def get_employees(
     is_active: Optional[bool] = Query(None, description="有効フラグフィルター"),
     department: Optional[str] = Query(None, description="部署フィルター"),
     search: Optional[str] = Query(None, description="検索文字列（名前、コード、メール）"),
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> EmployeeListResponse:
     """
     従業員一覧を取得
@@ -91,8 +91,8 @@ async def get_employees(
 @router.get("/employees/{employee_id}", response_model=EmployeeResponse)
 async def get_employee(
     employee_id: int,
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> EmployeeResponse:
     """
     従業員詳細を取得
@@ -118,8 +118,8 @@ async def get_employee(
 @router.post("/employees", response_model=EmployeeResponse, status_code=status.HTTP_201_CREATED)
 async def create_employee(
     employee_data: EmployeeCreate,
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> EmployeeResponse:
     """
     従業員を新規作成
@@ -153,8 +153,8 @@ async def create_employee(
 async def update_employee(
     employee_id: int,
     employee_data: EmployeeUpdate,
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> EmployeeResponse:
     """
     従業員情報を更新
@@ -187,8 +187,8 @@ async def update_employee(
 @router.delete("/employees/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_employee(
     employee_id: int,
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> Response:
     """
     従業員を削除（論理削除）
@@ -217,8 +217,8 @@ async def delete_employee(
 async def add_employee_card(
     employee_id: int,
     card_data: CardCreate,
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> CardResponse:
     """
     従業員にカードを追加
@@ -247,8 +247,8 @@ async def add_employee_card(
 @router.get("/employees/{employee_id}/cards", response_model=CardListResponse)
 async def get_employee_cards(
     employee_id: int,
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> CardListResponse:
     """
     従業員のカード一覧を取得
@@ -288,8 +288,8 @@ async def get_employee_cards(
 @router.delete("/cards/{card_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_card(
     card_id: int,
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> Response:
     """
     カードを削除（論理削除）
@@ -319,8 +319,8 @@ async def delete_card(
 async def register_card_legacy(
     employee_id: int,
     card_idm: str = Query(..., description="カードIDm（ハッシュ化前）"),
-##    current_user = Depends(require_permission_or_bypass("employee_manage")),
-#    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     【非推奨】従業員にカードを登録（後方互換性用）

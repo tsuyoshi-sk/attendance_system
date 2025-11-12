@@ -5,10 +5,11 @@
 """
 
 import hashlib
+import binascii
 from datetime import datetime, date, timedelta
 from typing import Dict, Any, Optional, List, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_, func
+from sqlalchemy import desc, and_, func, or_
 
 from config.config import config
 from backend.app.models import Employee, PunchRecord, PunchType
@@ -55,18 +56,19 @@ class PunchService:
         """
         if not card_idm and not card_idm_hash:
             raise PunchServiceError("INVALID_REQUEST_NO_ID", config.PUNCH_SERVICE_ERROR_MESSAGES['INVALID_REQUEST_NO_ID'])
-        
+
         punch_time = timestamp or datetime.now()
         if card_idm_hash:
             idm_hash = card_idm_hash.lower()
+            employee = self._get_active_employee(idm_hash)
         elif card_idm and self._looks_like_hash(card_idm):
             idm_hash = card_idm.lower()
+            employee = self._get_active_employee(idm_hash)
         else:
-            idm_hash = hashlib.sha256(f"{card_idm}{config.IDM_HASH_SECRET}".encode()).hexdigest()
-        
-        employee = self._get_active_employee(idm_hash)
-        
-        self._prevent_duplicate_punch(employee.id, punch_time)
+            # BIN/STR両方式で照合
+            employee = self._get_active_employee_by_idm(card_idm)
+
+        self._prevent_duplicate_punch(employee.id, punch_type, punch_time)
         self._enforce_daily_limits(employee.id, punch_type, punch_time)
         self._validate_punch_sequence(employee.id, punch_type, punch_time)
         
@@ -101,21 +103,61 @@ class PunchService:
             Employee.card_idm_hash == card_idm_hash,
             Employee.is_active == True
         ).first()
-        
+
         if not employee:
             raise PunchServiceError("EMPLOYEE_NOT_FOUND", config.PUNCH_SERVICE_ERROR_MESSAGES['EMPLOYEE_NOT_FOUND'])
         if not employee.is_active:
             raise PunchServiceError("INACTIVE_EMPLOYEE", config.PUNCH_SERVICE_ERROR_MESSAGES['INACTIVE_EMPLOYEE'])
         return employee
+
+    def _get_active_employee_by_idm(self, card_idm: str) -> Employee:
+        """
+        生のIDmから従業員を検索（BIN/STR両方式で照合）
+
+        BIN方式（推奨）: バイナリIDm + SECRET
+        STR方式（互換）: 文字列IDm + SECRET
+        """
+        # BIN方式（推奨）: hex文字列をバイトに変換してからハッシュ
+        try:
+            card_idm_bytes = binascii.unhexlify(card_idm)
+            bin_hash = hashlib.sha256(card_idm_bytes + config.IDM_HASH_SECRET.encode()).hexdigest()
+        except (ValueError, binascii.Error):
+            # hex変換失敗時はBIN方式スキップ
+            bin_hash = None
+
+        # STR方式（互換）: 文字列として結合してからハッシュ
+        str_hash = hashlib.sha256(f"{card_idm}{config.IDM_HASH_SECRET}".encode()).hexdigest()
+
+        # 両方式で照合
+        hash_candidates = [h for h in [bin_hash, str_hash] if h is not None]
+
+        employee = self.db.query(Employee).filter(
+            Employee.card_idm_hash.in_(hash_candidates),
+            Employee.is_active == True
+        ).first()
+
+        if not employee:
+            raise PunchServiceError("EMPLOYEE_NOT_FOUND", config.PUNCH_SERVICE_ERROR_MESSAGES['EMPLOYEE_NOT_FOUND'])
+        if not employee.is_active:
+            raise PunchServiceError("INACTIVE_EMPLOYEE", config.PUNCH_SERVICE_ERROR_MESSAGES['INACTIVE_EMPLOYEE'])
+
+        return employee
     
-    def _prevent_duplicate_punch(self, employee_id: int, punch_time: datetime) -> None:
+    def _prevent_duplicate_punch(self, employee_id: int, punch_type: PunchType, punch_time: datetime) -> None:
+        """
+        重複打刻を防止
+
+        同じ打刻タイプの場合のみ、3分間隔制限を適用します。
+        異なる打刻タイプ（例: IN→OUTSIDE、OUTSIDE→RETURN）の場合は制限しません。
+        """
         last_punch = self.db.query(PunchRecord).filter(
-            PunchRecord.employee_id == employee_id
+            PunchRecord.employee_id == employee_id,
+            PunchRecord.punch_type == punch_type.value  # 同じ打刻タイプのみチェック
         ).order_by(desc(PunchRecord.punch_time)).first()
-        
+
         if not last_punch:
             return
-        
+
         now = datetime.now()
         future_threshold = self.MIN_PUNCH_INTERVAL_MINUTES * 60
         if (
@@ -125,7 +167,7 @@ class PunchService:
             # どちらの打刻も十分未来の時刻として送られてきた場合は、
             # 実際の時間差を厳密にチェックしない（テスト/シミュレーション用途）
             return
-        
+
         delta = punch_time - last_punch.punch_time
         if delta.total_seconds() < self.MIN_PUNCH_INTERVAL_MINUTES * 60:
             raise PunchServiceError(

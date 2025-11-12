@@ -81,8 +81,10 @@ app = FastAPI(
     version=config.APP_VERSION,
     description="PaSoRi RC-S380/RC-S300を使用した勤怠管理システムのAPIサーバー",
     lifespan=lifespan,
-    docs_url="/docs" if config.DEBUG else None,
-    redoc_url="/redoc" if config.DEBUG else None,
+    # ドキュメントを常時有効化
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 @app.middleware("http")
