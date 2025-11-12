@@ -5,7 +5,7 @@
 from enum import Enum
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic import ValidationInfo
 
 
@@ -45,3 +45,9 @@ class PunchCreate(BaseModel):
         if len(normalized) not in allowed_lengths or not all(c in "0123456789abcdefABCDEF" for c in normalized):
             raise ValueError("card_idmは16進数で指定してください")
         return normalized.lower()
+
+    @model_validator(mode='after')
+    def check_card_id_or_hash_present(self) -> 'PunchCreate':
+        if not self.card_idm and not self.card_idm_hash:
+            raise ValueError('card_idm または card_idm_hash のいずれかが必要です')
+        return self

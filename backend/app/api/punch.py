@@ -56,7 +56,6 @@ async def create_punch(
     Raises:
         HTTPException: エラー発生時
     """
-    start_time = datetime.now()
     try:
         service = PunchService(db)
 
@@ -68,11 +67,9 @@ async def create_punch(
             note=payload.note,
             timestamp=payload.timestamp
         )
-        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
         return result
     except PunchServiceError as e:
         logger.warning(f"Punch service error: {e.code} - {e}")
-        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
         status_code = ERROR_STATUS_MAP.get(e.code, status.HTTP_400_BAD_REQUEST)
         return JSONResponse(
             status_code=status_code,
@@ -94,7 +91,6 @@ async def create_punch(
             "device_type": payload.device_type or "pasori",
             "note": payload.note,
         })
-        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
         return {
             "success": True,
             "message": "オフラインモードで打刻を受け付けました。ネットワーク復旧後に自動同期します。",
@@ -106,14 +102,12 @@ async def create_punch(
         }
     except ValueError as e:
         logger.error(f"ValueError during processing: {e}")
-        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
         logger.error(f"Unexpected error during punch creation: {e}")
-        response.headers["X-Process-Time"] = f"{(datetime.now() - start_time).total_seconds():.4f}"
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"打刻処理中にエラーが発生しました: {str(e)}"

@@ -5,6 +5,7 @@ APIサーバーのエントリーポイントとなるモジュールです。
 """
 
 import logging
+import time
 from contextlib import asynccontextmanager
 from typing import Any, Dict
 
@@ -83,6 +84,15 @@ app = FastAPI(
     docs_url="/docs" if config.DEBUG else None,
     redoc_url="/redoc" if config.DEBUG else None,
 )
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    """リクエストの処理時間をレスポンスヘッダーに追加するミドルウェア"""
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = f"{process_time:.4f}"
+    return response
 
 # セキュリティミドルウェアの追加
 add_security_middleware(app, config)
