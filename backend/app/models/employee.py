@@ -13,10 +13,10 @@ import enum
 from backend.app.database import Base
 
 
-class WageType(enum.Enum):
+class WageType(str, enum.Enum):
     """賃金タイプ"""
-    HOURLY = "hourly"      # 時給制
-    MONTHLY = "monthly"    # 月給制
+    HOURLY = "HOURLY"      # 時給制
+    MONTHLY = "MONTHLY"    # 月給制
 
 
 class Employee(Base):
@@ -94,7 +94,7 @@ class Employee(Base):
             "position": self.position,
             "employment_type": self.employment_type,
             "hire_date": self.hire_date.isoformat() if self.hire_date else None,
-            "wage_type": self.wage_type.value if self.wage_type else None,
+            "wage_type": self.wage_type.value.lower() if self.wage_type else None,
             "hourly_rate": float(self.hourly_rate) if self.hourly_rate else None,
             "monthly_salary": self.monthly_salary,
             "is_active": self.is_active,

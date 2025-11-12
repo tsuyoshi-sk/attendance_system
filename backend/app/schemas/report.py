@@ -9,6 +9,8 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from enum import Enum
 
+from backend.app.schemas.punch import PunchTypeEnum
+
 
 class ReportType(str, Enum):
     """レポート種別"""
@@ -19,7 +21,7 @@ class ReportType(str, Enum):
 
 class PunchRecordResponse(BaseModel):
     """打刻記録レスポンス"""
-    punch_type: str
+    punch_type: PunchTypeEnum
     timestamp: datetime
     processed: bool
     

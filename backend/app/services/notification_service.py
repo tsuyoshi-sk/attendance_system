@@ -283,17 +283,17 @@ class NotificationService:
             punch_time: 打刻時刻
         """
         punch_type_display = {
-            "clock_in": "出勤",
-            "clock_out": "退勤",
-            "break_start": "外出",
-            "break_end": "戻り"
+            "in": "出勤",
+            "out": "退勤",
+            "outside": "外出",
+            "return": "戻り"
         }
         
         emoji_map = {
-            "clock_in": "🏢",
-            "clock_out": "🏠",
-            "break_start": "🚶",
-            "break_end": "🔙"
+            "in": "🏢",
+            "out": "🏠",
+            "outside": "🚶",
+            "return": "🔙"
         }
         
         type_name = punch_type_display.get(punch_type, punch_type)

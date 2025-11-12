@@ -5,7 +5,7 @@
 from datetime import date, datetime
 from typing import Optional, List
 from decimal import Decimal
-from pydantic import BaseModel, EmailStr, Field, validator, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator, ValidationInfo
 from enum import Enum
 
 
@@ -16,7 +16,7 @@ class WageTypeEnum(str, Enum):
 
 
 class EmployeeBase(BaseModel):
-    """従業員基本スキーマ"""
+    """従業員基本スキーマ（リクエスト用）"""
     employee_code: str = Field(..., min_length=1, max_length=20, description="従業員コード")
     name: str = Field(..., min_length=1, max_length=100, description="氏名")
     name_kana: Optional[str] = Field(None, max_length=100, description="氏名（カナ）")
@@ -30,30 +30,32 @@ class EmployeeBase(BaseModel):
     monthly_salary: Optional[int] = Field(None, ge=0, description="月給")
     is_active: bool = Field(True, description="有効フラグ")
 
-    @validator('employee_code')
-    def validate_employee_code(cls, v):
-        if not v.strip():
-            raise ValueError('従業員コードは必須です')
-        # 英数字とハイフンのみ許可
-        if not all(c.isalnum() or c == '-' for c in v):
-            raise ValueError('従業員コードは英数字とハイフンのみ使用できます')
-        return v.upper()
-
-    @validator('hourly_rate', 'monthly_salary')
-    def validate_wage(cls, v, values):
-        if 'wage_type' in values:
-            if values['wage_type'] == WageTypeEnum.HOURLY and values.get('hourly_rate') is None:
-                raise ValueError('時給制の場合、時給は必須です')
-            elif values['wage_type'] == WageTypeEnum.MONTHLY and values.get('monthly_salary') is None:
-                raise ValueError('月給制の場合、月給は必須です')
-        return v
-
     model_config = ConfigDict(from_attributes=True)
 
 
 class EmployeeCreate(EmployeeBase):
     """従業員作成スキーマ"""
-    pass
+    @field_validator('employee_code')
+    def validate_employee_code(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError('従業員コードは必須です')
+        if not all(c.isalnum() or c in '-_' for c in v):
+            raise ValueError('従業員コードは英数字とハイフンのみ使用できます')
+        return v.upper()
+
+    @field_validator('hourly_rate', mode='after')
+    def validate_hourly_rate(cls, v, info: ValidationInfo):
+        wage_type = info.data.get('wage_type')
+        if wage_type == WageTypeEnum.HOURLY and v is None:
+            raise ValueError('時給制の場合、時給は必須です')
+        return v
+
+    @field_validator('monthly_salary', mode='after')
+    def validate_monthly_salary(cls, v, info: ValidationInfo):
+        wage_type = info.data.get('wage_type')
+        if wage_type == WageTypeEnum.MONTHLY and v is None:
+            raise ValueError('月給制の場合、月給は必須です')
+        return v
 
 
 class EmployeeUpdate(BaseModel):
@@ -73,8 +75,21 @@ class EmployeeUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class EmployeeResponse(EmployeeBase):
+class EmployeeResponse(BaseModel):
     """従業員レスポンススキーマ"""
+    id: int
+    employee_code: str
+    name: str
+    name_kana: Optional[str] = None
+    email: Optional[EmailStr] = None
+    department: Optional[str] = None
+    position: Optional[str] = None
+    employment_type: str
+    hire_date: Optional[date] = None
+    wage_type: WageTypeEnum
+    hourly_rate: Optional[Decimal] = None
+    monthly_salary: Optional[int] = None
+    is_active: bool
     id: int
     has_card: bool = Field(False, description="カード登録済みフラグ")
     card_count: int = Field(0, description="登録カード数")

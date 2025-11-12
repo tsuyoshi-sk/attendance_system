@@ -65,9 +65,9 @@ class ExportService:
                 clock_out_time = ""
                 
                 for punch in report.punch_records:
-                    if punch.punch_type == "clock_in" and not clock_in_time:
+                    if punch.punch_type == "in" and not clock_in_time:
                         clock_in_time = punch.timestamp.strftime("%H:%M")
-                    elif punch.punch_type == "clock_out":
+                    elif punch.punch_type == "out":
                         clock_out_time = punch.timestamp.strftime("%H:%M")
                 
                 writer.writerow([
@@ -296,11 +296,11 @@ class ExportService:
                 breaks = []
                 
                 for punch in report.punch_records:
-                    if punch.punch_type == "clock_in":
+                    if punch.punch_type == "in":
                         clock_in = punch.timestamp.strftime("%H:%M")
-                    elif punch.punch_type == "clock_out":
+                    elif punch.punch_type == "out":
                         clock_out = punch.timestamp.strftime("%H:%M")
-                    elif punch.punch_type in ["break_start", "break_end"]:
+                    elif punch.punch_type in ["outside", "return"]:
                         breaks.append(f"{punch.punch_type}: {punch.timestamp.strftime('%H:%M')}")
                 
                 # 備考
