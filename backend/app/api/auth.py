@@ -4,9 +4,9 @@
 ログイン、ログアウト、トークン管理などの認証関連のAPIエンドポイントを定義します。
 """
 
-from datetime import timedelta
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 import logging
@@ -55,7 +55,7 @@ async def get_current_user(
     )
     
     service = AuthService(db)
-    user = await service.get_current_user(token)
+    user = await run_in_threadpool(service.get_current_user, token)
     
     if not user:
         raise credentials_exception
@@ -133,7 +133,11 @@ async def login(
     service = AuthService(db)
     
     # ユーザー認証
-    user = await service.authenticate_user(form_data.username, form_data.password)
+    user = await run_in_threadpool(
+        service.authenticate_user,
+        form_data.username,
+        form_data.password
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -178,7 +182,11 @@ async def login_form(
     service = AuthService(db)
     
     # ユーザー認証
-    user = await service.authenticate_user(login_data.username, login_data.password)
+    user = await run_in_threadpool(
+        service.authenticate_user,
+        login_data.username,
+        login_data.password
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -244,22 +252,27 @@ async def change_password(
     """
     try:
         service = AuthService(db)
-        await service.change_password(current_user.id, password_data)
+        await run_in_threadpool(
+            service.change_password,
+            current_user.id,
+            password_data
+        )
         
         return {
             "message": "パスワードを変更しました"
         }
         
-    except ValueError as e:
+    except ValueError as exc:
+        logger.warning("Invalid change_password request: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="パスワードの変更に失敗しました。入力内容を確認してください。"
         )
-    except Exception as e:
-        logger.error(f"パスワード変更エラー: {str(e)}")
+    except Exception:
+        logger.error("Unexpected error while changing password", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="パスワードの変更に失敗しました"
+            detail="パスワードの変更に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -296,7 +309,13 @@ async def create_user(
     """
     try:
         service = AuthService(db)
-        user = await service.create_user(username, password, role, employee_id)
+        user = await run_in_threadpool(
+            service.create_user,
+            username,
+            password,
+            role,
+            employee_id
+        )
         
         return UserResponse(
             id=user.id,
@@ -310,16 +329,17 @@ async def create_user(
             permissions=user.get_permissions()
         )
         
-    except ValueError as e:
+    except ValueError as exc:
+        logger.warning("Invalid create_user request: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="ユーザーを作成できませんでした。入力内容を確認してください。"
         )
-    except Exception as e:
-        logger.error(f"ユーザー作成エラー: {str(e)}")
+    except Exception:
+        logger.error("Unexpected error while creating user", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ユーザーの作成に失敗しました"
+            detail="ユーザーの作成に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -340,8 +360,9 @@ async def init_admin(
             "admin_id": "simple_admin",
             "status": "success"
         }
-    except Exception as e:
+    except Exception:
+        logger.error("Failed to initialize admin user", exc_info=True)
         return {
-            "message": f"エラー詳細: {str(e)}",
+            "message": "管理者の初期化に失敗しました。ログを確認してください。",
             "status": "error"
         }

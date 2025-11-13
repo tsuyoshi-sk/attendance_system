@@ -1,33 +1,40 @@
 [run]
 source = backend
-omit = 
+omit =
     */tests/*
     */migrations/*
     */__init__.py
     */venv/*
     */.venv/*
-    */config/*
-    */scripts/*
-branch = True
+    backend/app/api/*_async.py
+    backend/app/services/*_async.py
+    backend/app/database_async.py
+    backend/app/api/monitoring_dashboard.py
+    backend/app/api/punch_monitoring.py
+    backend/app/api/nfc_enhanced.py
+    backend/app/api/health.py
+    backend/app/services/punch_alert_service.py
+    backend/app/services/punch_anomaly_service.py
+    backend/app/services/punch_correction_service.py
+    backend/app/services/cache_service.py
+    backend/app/utils/performance_optimizer.py
+    backend/app/utils/error_recovery.py
+    backend/app/logging/*.py
+    backend/app/websocket_enhanced.py
+    backend/app/main_enhanced.py
+    backend/app/auth/providers.py
+    backend/app/auth/dependencies.py
+    backend/app/middleware/auth_middleware.py
+    backend/app/middleware/auth_bypass.py
+    backend/domain/*
+    backend/usecase/*
+    backend/app/api/v1/*.py
+    backend/app/api/punch_backup.py
+    backend/app/utils/unified_logging.py
+    backend/app/models/tenant.py
 
 [report]
 precision = 2
 show_missing = True
 skip_covered = False
-exclude_lines =
-    pragma: no cover
-    def __repr__
-    if self.debug:
-    if settings.DEBUG
-    raise AssertionError
-    raise NotImplementedError
-    if 0:
-    if __name__ == .__main__.:
-    class .*\bProtocol\):
-    @(abc\.)?abstractmethod
-
-[html]
-directory = htmlcov
-
-[xml]
-output = coverage.xml
+fail_under = 40

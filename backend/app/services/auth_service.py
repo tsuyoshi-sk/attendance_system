@@ -28,7 +28,7 @@ class AuthService:
     def __init__(self, db: Session):
         self.db = db
     
-    async def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    def authenticate_user(self, username: str, password: str) -> Optional[User]:
         """
         ユーザー認証
         
@@ -59,7 +59,7 @@ class AuthService:
         logger.info(f"認証成功: {username}")
         return user
     
-    async def create_user(
+    def create_user(
         self,
         username: str,
         password: str,
@@ -120,7 +120,7 @@ class AuthService:
             logger.error(f"ユーザー作成エラー: {str(e)}")
             raise ValueError("ユーザーの作成に失敗しました")
     
-    async def change_password(self, user_id: int, password_data: PasswordChange) -> bool:
+    def change_password(self, user_id: int, password_data: PasswordChange) -> bool:
         """
         パスワードを変更
         
@@ -197,7 +197,7 @@ class AuthService:
             logger.warning(f"トークン検証エラー: {str(e)}")
             return None
     
-    async def get_current_user(self, token: str) -> Optional[User]:
+    def get_current_user(self, token: str) -> Optional[User]:
         """
         トークンから現在のユーザーを取得
         
@@ -243,7 +243,7 @@ class AuthService:
         """
         return pwd_context.hash(password)
     
-    async def create_initial_admin(self) -> Optional[User]:
+    def create_initial_admin(self) -> Optional[User]:
         """
         初期管理者アカウントを作成
         
@@ -258,7 +258,7 @@ class AuthService:
         
         try:
             # デフォルト管理者を作成
-            admin = await self.create_user(
+            admin = self.create_user(
                 username="admin",
                 password="admin123!",  # 初期パスワード（本番環境では変更必須）
                 role=UserRole.ADMIN

@@ -15,12 +15,16 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from config.config import config
 from backend.app.database import init_db, get_db
 from backend.app.api import punch, admin, auth, reports, analytics
 from backend.app.health_check import get_integrated_health_status
 from backend.app.middleware.security_async import add_security_middleware
+from backend.app.security.ratelimit import limiter
 
 
 # ログ設定
@@ -28,7 +32,7 @@ try:
     # LOG_FORMATが存在しない場合のデフォルト値
     log_format = getattr(config, 'LOG_FORMAT', '%(asctime)s [%(levelname)s] %(name)s: %(message)s')
     log_level = getattr(config, 'LOG_LEVEL', 'INFO').upper()
-    
+
     logging.basicConfig(
         level=getattr(logging, log_level, logging.INFO),
         format=log_format,
@@ -87,6 +91,11 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# レート制限をFastAPIアプリに登録
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     """リクエストの処理時間をレスポンスヘッダーに追加するミドルウェア"""
@@ -94,6 +103,14 @@ async def add_process_time_header(request: Request, call_next):
     response = await call_next(request)
     process_time = time.time() - start_time
     response.headers["X-Process-Time"] = f"{process_time:.4f}"
+
+    # 遅いリクエストの警告（1秒超）
+    if process_time > 1.0:
+        logger.warning(
+            f"Slow request: {request.method} {request.url.path} "
+            f"took {process_time:.2f}s (client: {request.client.host if request.client else 'unknown'})"
+        )
+
     return response
 
 # セキュリティミドルウェアの追加
@@ -291,6 +308,15 @@ app.include_router(
     prefix=f"{config.API_V1_PREFIX}/analytics",
     tags=["分析"]
 )
+
+
+# SPA統合（フロントエンド配信）
+try:
+    from .spa_mount_runtime import apply_spa_mount  # type: ignore
+    apply_spa_mount(app)
+    logger.info("SPA統合が完了しました")
+except Exception as e:
+    logger.warning(f"SPA統合をスキップしました: {e}")
 
 
 def main():

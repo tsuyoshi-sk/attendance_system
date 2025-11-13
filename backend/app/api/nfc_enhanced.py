@@ -27,7 +27,7 @@ from functools import lru_cache
 from backend.app.database import get_db
 from backend.app.models import Employee, PunchRecord, PunchType
 from backend.app.services.punch_service import PunchService
-from backend.app.websocket_enhanced import enhanced_connection_manager
+from backend.app.websocket_enhanced import get_enhanced_connection_manager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -408,7 +408,7 @@ async def nfc_websocket_endpoint(
     }
     
     # Connect using enhanced manager
-    connected = await enhanced_connection_manager.optimized_connect(
+    connected = await get_enhanced_connection_manager().optimized_connect(
         websocket=websocket,
         client_id=client_id,
         metadata=metadata
@@ -428,7 +428,7 @@ async def nfc_websocket_endpoint(
                 
                 # Process different message types
                 if message.get("type") == "ping":
-                    await enhanced_connection_manager.send_personal_message(
+                    await get_enhanced_connection_manager().send_personal_message(
                         client_id,
                         {"type": "pong", "timestamp": datetime.now().isoformat()}
                     )
@@ -438,7 +438,7 @@ async def nfc_websocket_endpoint(
                     scan_request = NFCScanRequest(**message.get("data", {}))
                     result = await process_nfc_scan_async(scan_request, db)
                     
-                    await enhanced_connection_manager.send_personal_message(
+                    await get_enhanced_connection_manager().send_personal_message(
                         client_id,
                         {
                             "type": "scan_result",
@@ -453,13 +453,13 @@ async def nfc_websocket_endpoint(
                     logger.info(f"Client {client_id} subscribed to: {events}")
                 
             except json.JSONDecodeError:
-                await enhanced_connection_manager.send_personal_message(
+                await get_enhanced_connection_manager().send_personal_message(
                     client_id,
                     {"type": "error", "message": "Invalid JSON format"}
                 )
             except Exception as e:
                 logger.error(f"Error processing WebSocket message: {e}")
-                await enhanced_connection_manager.send_personal_message(
+                await get_enhanced_connection_manager().send_personal_message(
                     client_id,
                     {"type": "error", "message": str(e)}
                 )
@@ -467,7 +467,7 @@ async def nfc_websocket_endpoint(
     except Exception as e:
         logger.error(f"WebSocket error for client {client_id}: {e}")
     finally:
-        await enhanced_connection_manager.disconnect(client_id)
+        await get_enhanced_connection_manager().disconnect(client_id)
 
 
 # Helper functions
@@ -609,7 +609,7 @@ async def broadcast_scan_update(client_id: str, result: Dict[str, Any]):
     }
     
     # Broadcast to monitoring clients
-    await enhanced_connection_manager.broadcast(
+    await get_enhanced_connection_manager().broadcast(
         update_message,
         exclude={client_id}  # Don't send back to originator
     )

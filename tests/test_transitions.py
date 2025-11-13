@@ -76,7 +76,11 @@ def test_db():
 
 @pytest.fixture
 def client(test_db):
-    """依存性を差し替えたテストクライアントを作成"""
+    """依存性を差し替えたテストクライアントを作成
+
+    注: レート制限は実際の10/minuteが適用されます。
+    テスト間隔が短い場合、429エラーが発生する可能性があります。
+    """
     from backend.app.main import app
 
     app.dependency_overrides[get_db] = override_get_db

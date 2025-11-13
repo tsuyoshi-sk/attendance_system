@@ -7,8 +7,9 @@
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import JSONResponse
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from backend.app.database import get_db
@@ -16,6 +17,7 @@ from backend.app.models import Employee, PunchRecord, PunchType
 from backend.app.services.punch_service import PunchService, PunchServiceError
 from backend.app.schemas.punch import PunchCreate
 from backend.app.utils import offline_queue_manager
+from backend.app.security.ratelimit import limiter
 
 ERROR_STATUS_MAP = {
     "EMPLOYEE_NOT_FOUND": status.HTTP_404_NOT_FOUND,
@@ -27,7 +29,6 @@ ERROR_STATUS_MAP = {
 
 logger = logging.getLogger(__name__)
 
-
 router = APIRouter()
 
 
@@ -38,7 +39,9 @@ async def punch_health_check():
 
 
 @router.post("/", response_model=Dict[str, Any])
+@limiter.limit("10/minute")
 async def create_punch(
+    request: Request,
     payload: PunchCreate,
     response: Response,
     db: Session = Depends(get_db),
@@ -59,29 +62,31 @@ async def create_punch(
     try:
         service = PunchService(db)
 
-        result = await service.create_punch(
+        # 同期サービスメソッドを非同期コンテキストで実行
+        result = await run_in_threadpool(
+            service.create_punch,
             card_idm=payload.card_idm,
-            card_idm_hash=payload.card_idm_hash,
             punch_type=PunchType(payload.punch_type.value),
             device_type=payload.device_type or "pasori",
             note=payload.note,
+            card_idm_hash=payload.card_idm_hash,
             timestamp=payload.timestamp
         )
         return result
     except PunchServiceError as e:
-        logger.warning(f"Punch service error: {e.code} - {e}")
+        logger.warning("Punch service error: %s", e.code)
         status_code = ERROR_STATUS_MAP.get(e.code, status.HTTP_400_BAD_REQUEST)
         return JSONResponse(
             status_code=status_code,
             content={
                 "error": {
                     "error": e.code,
-                    "message": str(e)
+                    "message": "打刻処理でエラーが発生しました。入力内容を確認してください。"
                 }
             }
         )
     except ConnectionError as e:
-        logger.error(f"Punch creation failed due to network error: {e}")
+        logger.error("Punch creation failed due to network error", exc_info=True)
         punch_time = payload.timestamp or datetime.now()
         offline_queue_manager.add_punch({
             "employee_id": None,
@@ -100,17 +105,17 @@ async def create_punch(
                 "is_offline": True
             }
         }
-    except ValueError as e:
-        logger.error(f"ValueError during processing: {e}")
+    except ValueError:
+        logger.error("Validation error during punch creation", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="打刻リクエストを処理できませんでした。入力値を確認してください。"
         )
-    except Exception as e:
-        logger.error(f"Unexpected error during punch creation: {e}")
+    except Exception:
+        logger.error("Unexpected error during punch creation", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"打刻処理中にエラーが発生しました: {str(e)}"
+            detail="打刻処理中にエラーが発生しました。管理者にお問い合わせください。"
         )
 
 
@@ -131,17 +136,22 @@ async def get_punch_status(
     """
     try:
         service = PunchService(db)
-        status_response = await service.get_employee_status(employee_id)
+        status_response = await run_in_threadpool(
+            service.get_employee_status,
+            employee_id
+        )
         return status_response
-    except ValueError as e:
+    except ValueError:
+        logger.error("Employee not found while fetching status", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail="指定した従業員の打刻情報が見つかりません。"
         )
-    except Exception as e:
+    except Exception:
+        logger.error("Unexpected error in get_punch_status", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"状況取得中にエラーが発生しました: {str(e)}"
+            detail="状況取得中にエラーが発生しました。管理者にお問い合わせください。"
         )
 
 
@@ -166,21 +176,24 @@ async def get_punch_history(
     """
     try:
         service = PunchService(db)
-        history = await service.get_punch_history(
-            employee_id=employee_id,
-            date=date,
-            limit=limit
+        history = await run_in_threadpool(
+            service.get_punch_history,
+            employee_id,
+            date,
+            limit
         )
         return history
-    except ValueError as e:
+    except ValueError:
+        logger.error("Validation error in get_punch_history", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="打刻履歴を取得できませんでした。入力パラメータを確認してください。"
         )
-    except Exception as e:
+    except Exception:
+        logger.error("Unexpected error in get_punch_history", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"履歴取得中にエラーが発生しました: {str(e)}"
+            detail="履歴取得中にエラーが発生しました。管理者にお問い合わせください。"
         )
 
 
