@@ -76,10 +76,13 @@ def init_db() -> None:
         if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir, exist_ok=True)
             logger.info(f"Created database directory: {db_dir}")
-    
+
     # 全てのモデルをインポート（Baseのメタデータに登録するため）
-    from backend.app.models import employee, punch_record, summary
-    
+    from backend.app.models import (
+        Employee, Department, EmployeeCard, User, PunchRecord,
+        DailySummary, MonthlySummary
+    )
+
     Base.metadata.create_all(bind=engine)
     logger.info("Database initialization completed")
 
