@@ -498,16 +498,34 @@ class EnhancedNFCConnectionManager:
         return connections
 
 
-# Global instance
-enhanced_connection_manager = EnhancedNFCConnectionManager()
+# Singleton instance (lazy initialization to avoid event loop issues during import)
+from typing import Optional as _Optional
+_enhanced_manager: _Optional[EnhancedNFCConnectionManager] = None
+
+
+def get_enhanced_connection_manager() -> EnhancedNFCConnectionManager:
+    """
+    Get or create the singleton EnhancedNFCConnectionManager instance.
+
+    This uses lazy initialization to avoid creating asyncio.Queue objects
+    during module import, which would fail if no event loop exists yet.
+
+    Returns:
+        EnhancedNFCConnectionManager: The singleton instance
+    """
+    global _enhanced_manager
+    if _enhanced_manager is None:
+        _enhanced_manager = EnhancedNFCConnectionManager()
+    return _enhanced_manager
 
 
 # Context manager for easy setup/cleanup
 @asynccontextmanager
 async def websocket_manager():
     """Context manager for WebSocket manager lifecycle"""
+    manager = get_enhanced_connection_manager()
     try:
-        await enhanced_connection_manager.initialize()
-        yield enhanced_connection_manager
+        await manager.initialize()
+        yield manager
     finally:
-        await enhanced_connection_manager.cleanup()
+        await manager.cleanup()

@@ -37,7 +37,7 @@ from backend.app.api import punch, admin, auth, reports, analytics, punch_monito
 
 # Import enhanced modules
 from backend.app.api import nfc_enhanced, monitoring_dashboard
-from backend.app.websocket_enhanced import enhanced_connection_manager, websocket_manager
+from backend.app.websocket_enhanced import get_enhanced_connection_manager, websocket_manager
 from backend.app.monitoring.system_monitor import system_monitor
 from backend.app.security.enhanced_auth import security_manager
 from backend.app.performance.async_optimizer import async_optimizer
@@ -166,7 +166,7 @@ async def lifespan(app: FastAPI):
         enhanced_logger.logger.info("Initializing enhanced components...")
         
         # Initialize WebSocket manager
-        await enhanced_connection_manager.initialize()
+        await get_enhanced_connection_manager().initialize()
         enhanced_logger.logger.info("Enhanced WebSocket manager initialized")
         
         # Initialize monitoring system
@@ -199,7 +199,7 @@ async def lifespan(app: FastAPI):
     
     try:
         # Cleanup enhanced components
-        await enhanced_connection_manager.cleanup()
+        await get_enhanced_connection_manager().cleanup()
         await system_monitor.cleanup()
         await async_optimizer.cleanup()
         
@@ -404,7 +404,7 @@ async def enhanced_health_check() -> Dict[str, Any]:
         
         # Check WebSocket manager
         try:
-            ws_metrics = await enhanced_connection_manager.performance_monitor()
+            ws_metrics = await get_enhanced_connection_manager().performance_monitor()
             health_status["components"]["websocket"] = {
                 "status": "healthy",
                 "connections": ws_metrics["system"]["active_connections"],

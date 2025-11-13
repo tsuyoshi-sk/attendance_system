@@ -321,10 +321,10 @@ class SystemMonitor:
     async def _collect_application_metrics_once(self):
         """Collect application metrics once"""
         # Get metrics from enhanced connection manager
-        from backend.app.websocket_enhanced import enhanced_connection_manager
+        from backend.app.websocket_enhanced import get_enhanced_connection_manager
         
         if enhanced_connection_manager:
-            perf_data = await enhanced_connection_manager.performance_monitor()
+            perf_data = await get_enhanced_connection_manager().performance_monitor()
             
             # WebSocket metrics
             await self.metrics_collector.record_metric(
@@ -574,10 +574,10 @@ class SystemMonitor:
         """Recovery action for high connection count"""
         try:
             # This would trigger connection cleanup or scaling
-            from backend.app.websocket_enhanced import enhanced_connection_manager
+            from backend.app.websocket_enhanced import get_enhanced_connection_manager
             
             # Trigger auto-scaling
-            await enhanced_connection_manager.auto_scaling()
+            await get_enhanced_connection_manager().auto_scaling()
             
             return True
         except Exception as e:

@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from backend.app.database import get_db
 from backend.app.monitoring.system_monitor import system_monitor
 from backend.app.security.enhanced_auth import security_manager
-from backend.app.websocket_enhanced import enhanced_connection_manager
+from backend.app.websocket_enhanced import get_enhanced_connection_manager
 from backend.app.performance.async_optimizer import async_optimizer
 import logging
 
@@ -81,7 +81,7 @@ async def get_dashboard_overview(db: Session = Depends(get_db)):
         security_status = await security_manager.get_security_status()
         
         # Get WebSocket connection status
-        ws_metrics = await enhanced_connection_manager.performance_monitor()
+        ws_metrics = await get_enhanced_connection_manager().performance_monitor()
         
         # Get performance optimizer stats
         perf_stats = async_optimizer.get_performance_stats()
@@ -143,7 +143,7 @@ async def get_realtime_metrics():
         network_recv = await system_monitor.metrics_collector.get_metric_stats("system.network.bytes_recv", 60)
         
         # WebSocket metrics
-        ws_metrics = await enhanced_connection_manager.performance_monitor()
+        ws_metrics = await get_enhanced_connection_manager().performance_monitor()
         
         return {
             "system": {
@@ -348,7 +348,7 @@ async def get_performance_dashboard():
         optimizer_stats = async_optimizer.get_performance_stats()
         
         # Get WebSocket performance
-        ws_metrics = await enhanced_connection_manager.performance_monitor()
+        ws_metrics = await get_enhanced_connection_manager().performance_monitor()
         
         return {
             "system_performance": performance_analysis,
@@ -377,10 +377,10 @@ async def get_websocket_dashboard():
     """
     try:
         # Get all connection info
-        connections = await enhanced_connection_manager.get_all_connections()
+        connections = await get_enhanced_connection_manager().get_all_connections()
         
         # Get performance metrics
-        ws_metrics = await enhanced_connection_manager.performance_monitor()
+        ws_metrics = await get_enhanced_connection_manager().performance_monitor()
         
         # Group connections by metadata
         connections_by_device = {}
@@ -550,7 +550,7 @@ async def get_system_health():
         
         # Check WebSocket manager
         try:
-            ws_metrics = await enhanced_connection_manager.performance_monitor()
+            ws_metrics = await get_enhanced_connection_manager().performance_monitor()
             ws_health = "healthy" if ws_metrics["system"]["connection_usage_percent"] < 90 else "warning"
             health_status["components"]["websocket"] = {
                 "status": ws_health,
