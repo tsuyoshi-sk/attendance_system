@@ -7,9 +7,11 @@
 import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from backend.app.database import get_db
 from backend.app.models import Employee, PunchRecord, PunchType
@@ -27,6 +29,8 @@ ERROR_STATUS_MAP = {
 
 logger = logging.getLogger(__name__)
 
+# レート制限の設定
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -38,7 +42,9 @@ async def punch_health_check():
 
 
 @router.post("/", response_model=Dict[str, Any])
+@limiter.limit("30/minute")  # 1分間に30回まで（テスト考慮）
 async def create_punch(
+    request: Request,
     payload: PunchCreate,
     response: Response,
     db: Session = Depends(get_db),
