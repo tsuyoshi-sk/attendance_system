@@ -310,6 +310,15 @@ app.include_router(
 )
 
 
+# SPA統合（フロントエンド配信）
+try:
+    from .spa_mount_runtime import apply_spa_mount  # type: ignore
+    apply_spa_mount(app)
+    logger.info("SPA統合が完了しました")
+except Exception as e:
+    logger.warning(f"SPA統合をスキップしました: {e}")
+
+
 def main():
     """CLIエントリーポイント"""
     import uvicorn

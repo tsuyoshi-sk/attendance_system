@@ -271,3 +271,7 @@ test.db
 test_service.db
 attendance_test.db
 test_transitions.db
+
+# Frontend build output
+backend/app/static/
+frontend/
