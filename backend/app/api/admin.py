@@ -7,6 +7,7 @@
 from datetime import date
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException, status, Query, Response, Depends
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 import hashlib
 import logging
@@ -55,12 +56,13 @@ async def get_employees(
     """
     try:
         service = EmployeeService(db)
-        employees = await service.get_employees(
-            skip=skip,
-            limit=limit,
-            is_active=is_active,
-            department=department,
-            search=search
+        employees = await run_in_threadpool(
+            service.get_employees,
+            skip,
+            limit,
+            is_active,
+            department,
+            search
         )
         
         # カード数を追加
@@ -100,12 +102,12 @@ async def get_employee(
     指定されたIDの従業員情報を取得します。
     """
     service = EmployeeService(db)
-    employee = await service.get_employee(employee_id)
+    employee = await run_in_threadpool(service.get_employee, employee_id)
     
     if not employee:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"従業員ID {employee_id} が見つかりません"
+            detail="指定した従業員が見つかりません。"
         )
     
     emp_dict = employee.to_dict()
@@ -128,7 +130,10 @@ async def create_employee(
     """
     try:
         service = EmployeeService(db)
-        employee = await service.create_employee(employee_data)
+        employee = await run_in_threadpool(
+            service.create_employee,
+            employee_data
+        )
         
         emp_dict = employee.to_dict()
         emp_dict['card_count'] = 0
@@ -136,14 +141,14 @@ async def create_employee(
         
         return EmployeeResponse(**emp_dict)
         
-    except ValueError as e:
-        logger.warning(f"従業員作成バリデーションエラー: {str(e)}")
+    except ValueError as exc:
+        logger.warning("従業員作成バリデーションエラー: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="従業員を作成できませんでした。入力内容を確認してください。"
         )
-    except Exception as e:
-        logger.error(f"従業員作成エラー: {str(e)}", exc_info=True)
+    except Exception:
+        logger.error("従業員作成エラー", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="従業員の作成に失敗しました。管理者にお問い合わせください。"
@@ -164,7 +169,11 @@ async def update_employee(
     """
     try:
         service = EmployeeService(db)
-        employee = await service.update_employee(employee_id, employee_data)
+        employee = await run_in_threadpool(
+            service.update_employee,
+            employee_id,
+            employee_data
+        )
         
         emp_dict = employee.to_dict()
         emp_dict['card_count'] = len([c for c in employee.cards if c.is_active])
@@ -172,14 +181,14 @@ async def update_employee(
         
         return EmployeeResponse(**emp_dict)
         
-    except ValueError as e:
-        logger.warning(f"従業員更新バリデーションエラー: {str(e)}")
+    except ValueError as exc:
+        logger.warning("従業員更新バリデーションエラー: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="従業員情報を更新できませんでした。入力内容を確認してください。"
         )
-    except Exception as e:
-        logger.error(f"従業員更新エラー: {str(e)}", exc_info=True)
+    except Exception:
+        logger.error("従業員更新エラー", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="従業員の更新に失敗しました。管理者にお問い合わせください。"
@@ -199,19 +208,20 @@ async def delete_employee(
     """
     try:
         service = EmployeeService(db)
-        await service.delete_employee(employee_id)
+        await run_in_threadpool(service.delete_employee, employee_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
         
-    except ValueError as e:
+    except ValueError as exc:
+        logger.warning("従業員削除バリデーションエラー: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail="指定した従業員が見つかりません。"
         )
-    except Exception as e:
-        logger.error(f"従業員削除エラー: {str(e)}")
+    except Exception:
+        logger.error("従業員削除エラー", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="従業員の削除に失敗しました"
+            detail="従業員の削除に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -230,19 +240,24 @@ async def add_employee_card(
     """
     try:
         service = EmployeeService(db)
-        card = await service.add_employee_card(employee_id, card_data)
+        card = await run_in_threadpool(
+            service.add_employee_card,
+            employee_id,
+            card_data
+        )
         return CardResponse(**card.to_dict())
         
-    except ValueError as e:
+    except ValueError as exc:
+        logger.warning("カード追加バリデーションエラー: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="カードを登録できませんでした。入力内容を確認してください。"
         )
-    except Exception as e:
-        logger.error(f"カード追加エラー: {str(e)}")
+    except Exception:
+        logger.error("カード追加エラー", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="カードの追加に失敗しました"
+            detail="カードの追加に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -261,14 +276,14 @@ async def get_employee_cards(
         service = EmployeeService(db)
         
         # 従業員の存在確認
-        employee = await service.get_employee(employee_id)
+        employee = await run_in_threadpool(service.get_employee, employee_id)
         if not employee:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"従業員ID {employee_id} が見つかりません"
+                detail="指定した従業員が見つかりません。"
             )
         
-        cards = await service.get_employee_cards(employee_id)
+        cards = await run_in_threadpool(service.get_employee_cards, employee_id)
         card_responses = [CardResponse(**card.to_dict()) for card in cards]
         
         return CardListResponse(
@@ -279,11 +294,11 @@ async def get_employee_cards(
         
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"カード一覧取得エラー: {str(e)}")
+    except Exception:
+        logger.error("カード一覧取得エラー", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="カード一覧の取得に失敗しました"
+            detail="カード一覧の取得に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -300,19 +315,20 @@ async def delete_card(
     """
     try:
         service = EmployeeService(db)
-        await service.delete_card(card_id)
+        await run_in_threadpool(service.delete_card, card_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
         
-    except ValueError as e:
+    except ValueError as exc:
+        logger.warning("カード削除バリデーションエラー: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail="指定したカードが見つかりません。"
         )
-    except Exception as e:
-        logger.error(f"カード削除エラー: {str(e)}")
+    except Exception:
+        logger.error("カード削除エラー", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="カードの削除に失敗しました"
+            detail="カードの削除に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -341,21 +357,26 @@ async def register_card_legacy(
     
     try:
         service = EmployeeService(db)
-        card = await service.add_employee_card(employee_id, card_data)
+        card = await run_in_threadpool(
+            service.add_employee_card,
+            employee_id,
+            card_data
+        )
         
         return {
             "message": "カードの登録が完了しました",
             "card": card.to_dict()
         }
         
-    except ValueError as e:
+    except ValueError as exc:
+        logger.warning("カード登録バリデーションエラー: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="カードの登録に失敗しました。入力内容を確認してください。"
         )
-    except Exception as e:
-        logger.error(f"カード登録エラー: {str(e)}")
+    except Exception:
+        logger.error("カード登録エラー", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="カードの登録に失敗しました"
+            detail="カードの登録に失敗しました。管理者にお問い合わせください。"
         )

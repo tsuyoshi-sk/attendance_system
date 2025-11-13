@@ -25,7 +25,7 @@ class EmployeeService:
     def __init__(self, db: Session):
         self.db = db
     
-    async def create_employee(self, employee_data: EmployeeCreate) -> Employee:
+    def create_employee(self, employee_data: EmployeeCreate) -> Employee:
         """
         新規従業員を作成
         
@@ -73,7 +73,7 @@ class EmployeeService:
             logger.error(f"従業員作成エラー: {str(e)}")
             raise ValueError("従業員の作成に失敗しました")
     
-    async def get_employee(self, employee_id: int) -> Optional[Employee]:
+    def get_employee(self, employee_id: int) -> Optional[Employee]:
         """
         従業員を取得
         
@@ -85,7 +85,7 @@ class EmployeeService:
         """
         return self.db.query(Employee).filter(Employee.id == employee_id).first()
     
-    async def get_employee_by_code(self, employee_code: str) -> Optional[Employee]:
+    def get_employee_by_code(self, employee_code: str) -> Optional[Employee]:
         """
         従業員コードで従業員を取得
         
@@ -97,7 +97,7 @@ class EmployeeService:
         """
         return self.db.query(Employee).filter(Employee.employee_code == employee_code).first()
     
-    async def get_employees(
+    def get_employees(
         self,
         skip: int = 0,
         limit: int = 100,
@@ -139,7 +139,7 @@ class EmployeeService:
         
         return query.offset(skip).limit(limit).all()
     
-    async def update_employee(self, employee_id: int, employee_data: EmployeeUpdate) -> Employee:
+    def update_employee(self, employee_id: int, employee_data: EmployeeUpdate) -> Employee:
         """
         従業員情報を更新
         
@@ -153,7 +153,7 @@ class EmployeeService:
         Raises:
             ValueError: 従業員が見つからない場合
         """
-        employee = await self.get_employee(employee_id)
+        employee = self.get_employee(employee_id)
         if not employee:
             raise ValueError(f"従業員ID {employee_id} が見つかりません")
         
@@ -194,7 +194,7 @@ class EmployeeService:
             logger.error(f"従業員更新エラー: {str(e)}")
             raise ValueError("従業員の更新に失敗しました")
     
-    async def delete_employee(self, employee_id: int) -> bool:
+    def delete_employee(self, employee_id: int) -> bool:
         """
         従業員を削除（論理削除）
         
@@ -204,7 +204,7 @@ class EmployeeService:
         Returns:
             bool: 削除成功フラグ
         """
-        employee = await self.get_employee(employee_id)
+        employee = self.get_employee(employee_id)
         if not employee:
             raise ValueError(f"従業員ID {employee_id} が見つかりません")
         
@@ -228,7 +228,7 @@ class EmployeeService:
         logger.info(f"従業員を論理削除しました: {employee.employee_code}")
         return True
     
-    async def add_employee_card(self, employee_id: int, card_data: CardCreate) -> EmployeeCard:
+    def add_employee_card(self, employee_id: int, card_data: CardCreate) -> EmployeeCard:
         """
         従業員にカードを追加
         
@@ -239,7 +239,7 @@ class EmployeeService:
         Returns:
             EmployeeCard: 作成されたカード
         """
-        employee = await self.get_employee(employee_id)
+        employee = self.get_employee(employee_id)
         if not employee:
             raise ValueError(f"従業員ID {employee_id} が見つかりません")
         
@@ -267,7 +267,7 @@ class EmployeeService:
         logger.info(f"カードを追加しました: 従業員 {employee.employee_code}, カード {card.card_nickname or 'No nickname'}")
         return card
     
-    async def get_employee_cards(self, employee_id: int) -> List[EmployeeCard]:
+    def get_employee_cards(self, employee_id: int) -> List[EmployeeCard]:
         """
         従業員のカード一覧を取得
         
@@ -282,7 +282,7 @@ class EmployeeService:
             EmployeeCard.is_active == True
         ).all()
     
-    async def delete_card(self, card_id: int) -> bool:
+    def delete_card(self, card_id: int) -> bool:
         """
         カードを削除（論理削除）
         
