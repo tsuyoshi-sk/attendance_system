@@ -106,6 +106,12 @@ python hardware/pasori_test.py
 - **シークレット検出**: git-secrets統合
 - **コード品質**: Black・Flake8・mypy
 
+### 本番必須環境変数
+`ENVIRONMENT=production` で起動する際は、以下のシークレットを安全な乱数で必ず設定してください。未設定/デフォルト値の場合はアプリが起動しません。
+- `JWT_SECRET_KEY` — 32文字以上のランダム文字列（推奨64文字）
+- `IDM_HASH_SECRET` — 16文字以上のランダム文字列
+開発・検証時は未設定でも自動生成されますが、本番配置では `.env` やSecret Managerで確実に指定してください。
+
 ## 📊 システムアーキテクチャ
 
 ```

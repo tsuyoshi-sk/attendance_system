@@ -15,15 +15,16 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from config.config import config
 from backend.app.database import init_db, get_db
 from backend.app.api import punch, admin, auth, reports, analytics
 from backend.app.health_check import get_integrated_health_status
 from backend.app.middleware.security_async import add_security_middleware
+from backend.app.security.ratelimit import limiter
 
 
 # ログ設定
@@ -48,9 +49,6 @@ except Exception as e:
     logging.warning(f"Failed to configure logging with config values: {e}")
 
 logger = logging.getLogger(__name__)
-
-# レート制限の設定
-limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -96,6 +94,7 @@ app = FastAPI(
 # レート制限をFastAPIアプリに登録
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
