@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import JSONResponse
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -65,13 +66,15 @@ async def create_punch(
     try:
         service = PunchService(db)
 
-        result = await service.create_punch(
-            card_idm=payload.card_idm,
-            card_idm_hash=payload.card_idm_hash,
-            punch_type=PunchType(payload.punch_type.value),
-            device_type=payload.device_type or "pasori",
-            note=payload.note,
-            timestamp=payload.timestamp
+        # 同期サービスメソッドを非同期コンテキストで実行
+        result = await run_in_threadpool(
+            service.create_punch,
+            payload.card_idm,
+            PunchType(payload.punch_type.value),
+            payload.device_type or "pasori",
+            payload.note,
+            payload.card_idm_hash,
+            payload.timestamp
         )
         return result
     except PunchServiceError as e:
@@ -139,7 +142,9 @@ async def get_punch_status(
     """
     try:
         service = PunchService(db)
-        status_response = await service.get_employee_status(employee_id)
+        status_response = await run_in_threadpool(
+            service.get_employee_status, employee_id
+        )
         return status_response
     except ValueError as e:
         logger.warning(f"Validation error in get_punch_status: {e}")
@@ -176,10 +181,11 @@ async def get_punch_history(
     """
     try:
         service = PunchService(db)
-        history = await service.get_punch_history(
-            employee_id=employee_id,
-            date=date,
-            limit=limit
+        history = await run_in_threadpool(
+            service.get_punch_history,
+            employee_id,
+            date,
+            limit
         )
         return history
     except ValueError as e:
