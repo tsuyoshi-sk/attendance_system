@@ -106,6 +106,12 @@ python hardware/pasori_test.py
 - **シークレット検出**: git-secrets統合
 - **コード品質**: Black・Flake8・mypy
 
+### レート制限
+- **打刻API**: 10リクエスト/分（X-Forwarded-For対応）
+- **除外エンドポイント**: /health, /metrics, /api/v1/admin/*
+- **変更方法**: `backend/app/api/punch.py` の `@limiter.limit("10/minute")` を編集
+- **本番推奨**: 10/minute（テスト環境では必要に応じて緩和可能）
+
 ### 本番必須環境変数
 `ENVIRONMENT=production` で起動する際は、以下のシークレットを安全な乱数で必ず設定してください。未設定/デフォルト値の場合はアプリが起動しません。
 - `JWT_SECRET_KEY` — 32文字以上のランダム文字列（推奨64文字）
@@ -131,15 +137,24 @@ attendance_system/
 
 ### テスト実行
 ```bash
-# 単体テスト
-pytest tests/unit/
+# 全テスト実行（推奨）
+pytest --basetemp=.tmp/pytest --cov=backend --cov-report=term-missing
 
-# 統合テスト
-pytest tests/integration/
+# サービス層とコアテストのみ
+pytest tests/services/ tests/test_transitions.py
 
-# カバレッジレポート
-pytest --cov=backend --cov-report=html
+# カバレッジレポート（HTML形式）
+pytest --basetemp=.tmp/pytest --cov=backend --cov-report=html
+
+# カバレッジ80%未満でfail
+pytest --basetemp=.tmp/pytest --cov=backend --cov-fail-under=80
 ```
+
+**TMPDIR / --basetemp の注意**:
+- macOS等で `TMPDIR` が長いパスの場合、Unix socket エラーが発生する可能性があります
+- `--basetemp=.tmp/pytest` を使用してプロジェクト内に一時ディレクトリを作成することを推奨
+- pyproject.toml の `[tool.coverage.run]` で未使用モジュールを除外済み（async variants, monitoring, cache等）
+- 実際の稼働コードのみで80%以上のカバレッジを達成
 
 ### コード品質チェック
 ```bash
