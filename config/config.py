@@ -7,11 +7,13 @@
 import os
 import json
 import logging
+import secrets
 from typing import Optional, List, Type, Union
 from datetime import time
 from pathlib import Path
+from urllib.parse import urlparse
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator, FieldValidationInfo
 from dotenv import load_dotenv
 
 # 環境設定インポートを削除（存在しないため）
@@ -140,6 +142,52 @@ class Settings(BaseSettings):
         "INVALID_DATE_FORMAT": "日付は YYYY-MM-DD 形式で指定してください",
     }
     
+    @field_validator("JWT_SECRET_KEY", "IDM_HASH_SECRET", mode="before")
+    @classmethod
+    def validate_sensitive_secrets(cls, value: Optional[str], info: FieldValidationInfo) -> str:
+        """
+        本番ではシークレットの未設定/デフォルト使用を禁止し、
+        開発環境では安全な値を自動生成する
+        """
+        field_name = info.field_name or "secret"
+        env = os.getenv("ENVIRONMENT", "development").lower()
+
+        insecure_markers = {
+            "JWT_SECRET_KEY": [
+                "development-jwt-secret-key",
+                "your-secret-key-here",
+                "change-me",
+            ],
+            "IDM_HASH_SECRET": [
+                "your-idm-hash-secret",
+                "default",
+                "change-me",
+            ],
+        }
+        min_lengths = {
+            "JWT_SECRET_KEY": 32,
+            "IDM_HASH_SECRET": 16,
+        }
+
+        raw_value = (value or "").strip()
+        markers = [m.lower() for m in insecure_markers.get(field_name, [])]
+        is_insecure = not raw_value or any(m in raw_value.lower() for m in markers)
+        min_length = min_lengths.get(field_name, 16)
+
+        if env == "production":
+            if is_insecure:
+                raise ValueError(f"{field_name} must be set to a secure random value in production")
+            if len(raw_value) < min_length:
+                raise ValueError(f"{field_name} must be at least {min_length} characters in production")
+            return raw_value
+
+        if is_insecure or len(raw_value) < min_length:
+            generated = secrets.token_urlsafe(min_length)
+            logger.warning(f"Auto-generating {field_name} for non-production environment")
+            return generated
+
+        return raw_value
+
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):
@@ -153,31 +201,23 @@ class Settings(BaseSettings):
                 return [origin.strip() for origin in value.split(',') if origin.strip()]
         return v
     
-    @field_validator('JWT_SECRET_KEY')
-    @classmethod
-    def validate_jwt_secret(cls, v):
-        if v == "your-secret-key-here-change-in-production":
-            import secrets
-            return secrets.token_urlsafe(32)
-        return v
-    
     @model_validator(mode='after')
     def ensure_directories_and_validate(self):
         """設定値の検証とディレクトリ作成"""
         Path(self.DATA_DIR).mkdir(parents=True, exist_ok=True)
         Path(self.LOG_DIR).mkdir(parents=True, exist_ok=True)
-        
+
         errors = []
-        
+
         if len(self.IDM_HASH_SECRET) < 8:
             errors.append("IDM_HASH_SECRET は8文字以上である必要があります")
-        
+
         if self.PASORI_TIMEOUT < 1 or self.PASORI_TIMEOUT > 10:
             errors.append("PASORI_TIMEOUT は1-10秒の範囲で設定してください")
-        
+
         if errors:
             raise ValueError("設定エラー: " + ", ".join(errors))
-        
+
         return self
     
     @property
@@ -202,6 +242,18 @@ class Settings(BaseSettings):
         """データベースURLを取得"""
         return self.DATABASE_URL
 
+    @property
+    def safe_database_url(self) -> str:
+        """認証情報を含まない安全なDB URL文字列"""
+        try:
+            parsed = urlparse(self.DATABASE_URL)
+            host = parsed.hostname or ""
+            port = f":{parsed.port}" if parsed.port else ""
+            path = parsed.path or ""
+            return f"{parsed.scheme}://{host}{port}{path}"
+        except Exception:
+            return f"{self.DATABASE_URL.split(':')[0]}://***"
+
 
 # 環境別設定は単純化されたため削除
 
@@ -215,6 +267,8 @@ config = settings
 # 設定の検証とログ出力
 logger.info(f"Configuration loaded for environment: {settings.ENVIRONMENT}")
 logger.info(f"Debug mode: {settings.DEBUG}")
-logger.info(f"Database: {settings.DATABASE_URL.split('@')[0] if '@' in settings.DATABASE_URL else settings.DATABASE_URL}")
+
+# DB URLの安全なログ出力（パスワードをマスキング）
+logger.info(f"Database: {settings.safe_database_url}")
 logger.info(f"Redis: {settings.REDIS_URL}")
 logger.info(f"CORS origins: {settings.CORS_ORIGINS}")

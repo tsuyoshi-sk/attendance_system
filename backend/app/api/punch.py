@@ -101,16 +101,18 @@ async def create_punch(
             }
         }
     except ValueError as e:
-        logger.error(f"ValueError during processing: {e}")
+        # ValueErrorは通常、バリデーションエラーなので詳細を返す
+        logger.warning(f"Validation error during punch creation: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"Unexpected error during punch creation: {e}")
+        # 予期しないエラーはログに詳細を記録し、ユーザーには汎用メッセージ
+        logger.error(f"Unexpected error during punch creation: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"打刻処理中にエラーが発生しました: {str(e)}"
+            detail="打刻処理中にエラーが発生しました。管理者にお問い合わせください。"
         )
 
 
@@ -134,14 +136,16 @@ async def get_punch_status(
         status_response = await service.get_employee_status(employee_id)
         return status_response
     except ValueError as e:
+        logger.warning(f"Validation error in get_punch_status: {e}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Unexpected error in get_punch_status: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"状況取得中にエラーが発生しました: {str(e)}"
+            detail="状況取得中にエラーが発生しました。管理者にお問い合わせください。"
         )
 
 
@@ -173,14 +177,16 @@ async def get_punch_history(
         )
         return history
     except ValueError as e:
+        logger.warning(f"Validation error in get_punch_history: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Unexpected error in get_punch_history: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"履歴取得中にエラーが発生しました: {str(e)}"
+            detail="履歴取得中にエラーが発生しました。管理者にお問い合わせください。"
         )
 
 

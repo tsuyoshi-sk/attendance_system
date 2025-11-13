@@ -81,10 +81,10 @@ async def get_employees(
             page_size=limit
         )
     except Exception as e:
-        logger.error(f"従業員一覧取得エラー: {str(e)}")
+        logger.error(f"従業員一覧取得エラー: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="従業員一覧の取得に失敗しました"
+            detail="従業員一覧の取得に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -137,15 +137,16 @@ async def create_employee(
         return EmployeeResponse(**emp_dict)
         
     except ValueError as e:
+        logger.warning(f"従業員作成バリデーションエラー: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"従業員作成エラー: {str(e)}")
+        logger.error(f"従業員作成エラー: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="従業員の作成に失敗しました"
+            detail="従業員の作成に失敗しました。管理者にお問い合わせください。"
         )
 
 
@@ -172,15 +173,16 @@ async def update_employee(
         return EmployeeResponse(**emp_dict)
         
     except ValueError as e:
+        logger.warning(f"従業員更新バリデーションエラー: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"従業員更新エラー: {str(e)}")
+        logger.error(f"従業員更新エラー: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="従業員の更新に失敗しました"
+            detail="従業員の更新に失敗しました。管理者にお問い合わせください。"
         )
 
 
