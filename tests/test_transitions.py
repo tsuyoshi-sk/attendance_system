@@ -2,10 +2,20 @@
 PunchType遷移の単体テストと統合テスト
 """
 
-import pytest
+import hashlib
 from enum import Enum
-from datetime import datetime, date, timedelta
+
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from backend.app.database import Base, get_db
+from backend.app.models import User, UserRole
+from backend.app.services.auth_service import AuthService
+from backend.app.utils.punch_helpers import VALID_TRANSITIONS
+from config.config import config
 
 try:
     from backend.app.models.punch_record import PunchType  # type: ignore
@@ -16,7 +26,26 @@ except Exception:
         OUTSIDE = "outside"
         RETURN = "return"
 
-from backend.app.utils.punch_helpers import VALID_TRANSITIONS
+
+# ===== テスト用データベース設定 =====
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test_transitions.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def override_get_db():
+    """FastAPI依存性をテスト用DBに差し替え"""
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
 
 
 # ===== 単体テスト =====
@@ -38,14 +67,46 @@ def test_invalid_paths():
 # ===== 統合テスト（FastAPIクライアント使用）=====
 
 @pytest.fixture
-def client():
-    """テストクライアントを作成"""
-    from backend.app.main import app
-    return TestClient(app)
+def test_db():
+    """テスト用にDBスキーマを作成/破棄"""
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
-def test_employee_and_token(client):
+def client(test_db):
+    """依存性を差し替えたテストクライアントを作成"""
+    from backend.app.main import app
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.pop(get_db, None)
+
+
+@pytest.fixture
+def test_admin_user(test_db):
+    """ログイン用の管理者ユーザーをseed"""
+    db = TestingSessionLocal()
+    try:
+        auth_service = AuthService(db)
+        admin = User(
+            username="admin",
+            password_hash=auth_service.get_password_hash("admin123!"),
+            role=UserRole.ADMIN,
+            is_active=True,
+        )
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+        return admin
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def test_employee_and_token(client, test_admin_user):
     """テスト用従業員とトークンを作成"""
     # 管理者でログイン
     login_response = client.post(
@@ -60,7 +121,6 @@ def test_employee_and_token(client):
         "employee_code": "TEST_TRANSITION_001",
         "name": "遷移テスト太郎",
         "email": "transition.test@example.com",
-        "department": "テスト部",
         "wage_type": "monthly",
         "monthly_salary": 300000,
         "is_active": True
@@ -77,7 +137,14 @@ def test_employee_and_token(client):
 
     # カードを登録
     card_idm = "abcdef0123456789"
-    punch_data = {"card_idm": card_idm, "punch_type": "in"}
+    card_hash = hashlib.sha256(f"{card_idm}{config.IDM_HASH_SECRET}".encode()).hexdigest()
+
+    card_response = client.post(
+        f"/api/v1/admin/employees/{employee['id']}/cards",
+        json={"card_idm_hash": card_hash, "card_nickname": "遷移テストカード"},
+        headers=headers,
+    )
+    assert card_response.status_code == 201
 
     return {
         "employee_id": employee["id"],
@@ -138,6 +205,12 @@ def test_duplicate_punch_same_type(client, test_employee_and_token):
     data = test_employee_and_token
     card_idm = data["card_idm"]
 
+    # 事前に出勤
+    client.post(
+        "/api/v1/punch/",
+        json={"card_idm": card_idm, "punch_type": "in"}
+    )
+
     # 1回目の外出
     response1 = client.post(
         "/api/v1/punch/",
@@ -178,9 +251,9 @@ def test_punch_status_japanese_display(client, test_employee_and_token):
     status_data = response.json()
 
     # 日本語表示を確認
-    assert "status" in status_data
+    assert "current_status" in status_data
     # "出勤中" や similar Japanese status
-    assert any(keyword in status_data["status"] for keyword in ["出勤", "勤務中", "在席"])
+    assert any(keyword in status_data["current_status"] for keyword in ["出勤", "勤務中", "在席"])
 
     # 外出
     client.post(
@@ -195,7 +268,7 @@ def test_punch_status_japanese_display(client, test_employee_and_token):
     )
     assert response.status_code == 200
     status_data = response.json()
-    assert "外出" in status_data["status"]
+    assert "外出" in status_data["current_status"]
 
     # 退勤
     client.post(
@@ -214,7 +287,7 @@ def test_punch_status_japanese_display(client, test_employee_and_token):
     )
     assert response.status_code == 200
     status_data = response.json()
-    assert "退勤" in status_data["status"]
+    assert "退勤" in status_data["current_status"]
 
 
 def test_invalid_sequence(client, test_employee_and_token):
