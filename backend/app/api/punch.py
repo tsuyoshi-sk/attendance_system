@@ -39,7 +39,7 @@ async def punch_health_check():
 
 
 @router.post("/", response_model=Dict[str, Any])
-@limiter.limit("30/minute")
+@limiter.limit("10/minute")
 async def create_punch(
     request: Request,
     payload: PunchCreate,
