@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  :root {
+    --background: 245 247 250;
+    --foreground: 31 41 55;
+
+    --card: 255 255 255;
+    --card-foreground: 31 41 55;
+
+    --primary: 59 130 246;
+    --primary-foreground: 255 255 255;
+
+    --secondary: 241 245 249;
+    --secondary-foreground: 51 65 85;
+
+    --muted: 241 245 249;
+    --muted-foreground: 100 116 139;
+
+    --accent: 59 130 246;
+    --accent-foreground: 255 255 255;
+
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 59 130 246;
+
+    --success: 34 197 94;
+    --warning: 234 179 8;
+    --info: 59 130 246;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-100 text-slate-700 hover:bg-slate-200 focus:ring-slate-400;
+  }
+
+  .btn-success {
+    @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-sm;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm;
+  }
+
+  .card {
+    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+  }
+
+  .card-header {
+    @apply px-6 py-4 border-b border-slate-100;
+  }
+
+  .card-content {
+    @apply px-6 py-4;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-danger {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .badge-info {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .badge-default {
+    @apply bg-slate-100 text-slate-700;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-slate-700 mb-1.5;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all duration-150 cursor-pointer;
+  }
+
+  .nav-item-active {
+    @apply bg-blue-50 text-blue-700 font-medium;
+  }
+}
+
+@layer utilities {
+  .font-sans {
+    font-family: 'Inter', 'Noto Sans JP', sans-serif;
+  }
+}

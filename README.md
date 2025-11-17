@@ -126,12 +126,47 @@ attendance_system/
 │   ├── app/         # APIエンドポイント
 │   ├── domain/      # ビジネスロジック
 │   └── services/    # サービス層
+├── frontend/        # React + TypeScript Web UI ✨NEW
+│   ├── src/
+│   │   ├── components/  # 共通コンポーネント
+│   │   ├── pages/       # ページコンポーネント
+│   │   ├── lib/         # APIクライアント
+│   │   └── types/       # TypeScript型定義
+│   └── README.md    # フロントエンド詳細ドキュメント
 ├── pwa/             # Progressive Web App
 ├── hardware/        # ハードウェア制御
 │   └── card_reader.py  # RC-S380/RC-S300対応
 ├── config/          # 設定管理
+├── NFCTimecard/     # iOS Swift アプリ
 └── tests/           # テストスイート
 ```
+
+## 🎨 フロントエンド Web UI ✨NEW
+
+モダンで使いやすいWeb UIを全面リデザインしました。
+
+### 主要機能
+- 📊 **ダッシュボード**: リアルタイム勤務状況、ワンクリック打刻
+- 📝 **打刻履歴**: 日付フィルタ、詳細表示、CSV出力
+- 📈 **レポート**: 月次サマリー、日別詳細、グラフ表示
+- ⚙️ **設定**: プロフィール管理、パスワード変更
+
+### 技術スタック
+- React 18 + TypeScript
+- Tailwind CSS (カスタムデザインシステム)
+- Axios (FastAPI統合)
+- date-fns (日付処理)
+
+### セットアップ
+
+```bash
+# フロントエンド起動
+cd frontend
+npm install
+npm run dev  # http://localhost:5173
+```
+
+詳細は [frontend/README.md](frontend/README.md) を参照してください。
 
 ## 🧪 開発者向け情報
 
