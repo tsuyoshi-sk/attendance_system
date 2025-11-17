@@ -1,0 +1,54 @@
+# PWAテスト用Docker Compose設定
+version: '3.8'
+
+services:
+  # FastAPIサーバー
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.pwa-test
+    command: python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=test
+      - DATABASE_URL=sqlite:///./test.db
+      - RATE_LIMIT_ENABLED=false
+    volumes:
+      - .:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pwa-test-network
+
+  # PWAテスト実行
+  pwa-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.pwa-test
+    command: >
+      bash -c "
+        echo 'Waiting for app to be ready...' &&
+        sleep 5 &&
+        curl -s http://app:8000/health &&
+        echo '' &&
+        echo 'Starting PWA tests...' &&
+        pytest tests/pwa/ -v --tb=short --color=yes --html=/app/test-results/pwa_report.html --self-contained-html
+      "
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      - PWA_BASE_URL=http://app:8000
+    volumes:
+      - .:/app
+      - ./test-results:/app/test-results
+    networks:
+      - pwa-test-network
+
+networks:
+  pwa-test-network:
+    driver: bridge

@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic import ValidationInfo
+import re
 
 
 class PunchTypeEnum(str, Enum):
@@ -36,14 +37,54 @@ class PunchCreate(BaseModel):
     @field_validator("card_idm")
     @classmethod
     def validate_card_idm(cls, value: Optional[str], info: ValidationInfo) -> Optional[str]:
+        """card_idmのバリデーション（SQLインジェクション対策含む）"""
         if value is None:
             return value
+
+        # 文字列型チェック
+        if not isinstance(value, str):
+            raise ValueError("card_idmは文字列である必要があります")
+
         normalized = value.strip()
         if not normalized:
             raise ValueError("card_idmは必須です")
+
+        # SQLインジェクション対策: 危険な文字を検出
+        if re.search(r"['\";\\<>]", normalized):
+            raise ValueError("card_idmに不正な文字が含まれています")
+
+        # 16進数のみ許可（厳格化）
+        if not re.match(r'^[0-9a-fA-F]+$', normalized):
+            raise ValueError("card_idmは16進数のみ指定可能です")
+
+        # 許可される長さ
         allowed_lengths = {16, 32, 64}
-        if len(normalized) not in allowed_lengths or not all(c in "0123456789abcdefABCDEF" for c in normalized):
-            raise ValueError("card_idmは16進数で指定してください")
+        if len(normalized) not in allowed_lengths:
+            raise ValueError(f"card_idmの長さは{allowed_lengths}のいずれかである必要があります")
+
+        return normalized.lower()
+
+    @field_validator("card_idm_hash")
+    @classmethod
+    def validate_card_idm_hash(cls, value: Optional[str]) -> Optional[str]:
+        """card_idm_hashのバリデーション（SHA256ハッシュ形式）"""
+        if value is None:
+            return value
+
+        # 文字列型チェック
+        if not isinstance(value, str):
+            raise ValueError("card_idm_hashは文字列である必要があります")
+
+        normalized = value.strip()
+
+        # SQLインジェクション対策: 危険な文字を検出
+        if re.search(r"['\";\\<>]", normalized):
+            raise ValueError("card_idm_hashに不正な文字が含まれています")
+
+        # SHA256ハッシュ: 正確に64文字の16進数
+        if not re.match(r'^[0-9a-fA-F]{64}$', normalized):
+            raise ValueError("card_idm_hashは64文字の16進数（SHA256ハッシュ）である必要があります")
+
         return normalized.lower()
 
     @model_validator(mode='after')

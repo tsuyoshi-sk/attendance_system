@@ -58,15 +58,30 @@ class PunchService:
             raise PunchServiceError("INVALID_REQUEST_NO_ID", config.PUNCH_SERVICE_ERROR_MESSAGES['INVALID_REQUEST_NO_ID'])
 
         punch_time = timestamp or datetime.now()
+        employee = None
+        lookup_error: Optional[PunchServiceError] = None
+
         if card_idm_hash:
-            idm_hash = card_idm_hash.lower()
-            employee = self._get_active_employee(idm_hash)
-        elif card_idm and self._looks_like_hash(card_idm):
-            idm_hash = card_idm.lower()
-            employee = self._get_active_employee(idm_hash)
-        else:
-            # BIN/STR両方式で照合
-            employee = self._get_active_employee_by_idm(card_idm)
+            try:
+                idm_hash = card_idm_hash.lower()
+                employee = self._get_active_employee(idm_hash)
+            except PunchServiceError as exc:
+                if exc.code != "EMPLOYEE_NOT_FOUND":
+                    raise
+                lookup_error = exc
+
+        if employee is None and card_idm:
+            if self._looks_like_hash(card_idm):
+                idm_hash = card_idm.lower()
+                employee = self._get_active_employee(idm_hash)
+            else:
+                # BIN/STR両方式で照合
+                employee = self._get_active_employee_by_idm(card_idm)
+
+        if employee is None:
+            if lookup_error:
+                raise lookup_error
+            raise PunchServiceError("EMPLOYEE_NOT_FOUND", config.PUNCH_SERVICE_ERROR_MESSAGES['EMPLOYEE_NOT_FOUND'])
 
         self._prevent_duplicate_punch(employee.id, punch_type, punch_time)
         self._enforce_daily_limits(employee.id, punch_type, punch_time)

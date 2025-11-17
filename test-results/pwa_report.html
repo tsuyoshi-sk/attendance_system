@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title id="head-title">pwa_report.html</title>
+      <style type="text/css">body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  vertical-align: top;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+#environment ul {
+  margin: 0;
+  padding: 0 20px;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+.col-links__extra {
+  margin-right: 3px;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #e6e6e6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.logwrapper {
+  max-height: 230px;
+  overflow-y: scroll;
+  background-color: #e6e6e6;
+}
+.logwrapper.expanded {
+  max-height: none;
+}
+.logwrapper.expanded .logexpander:after {
+  content: "collapse [-]";
+}
+.logwrapper .logexpander {
+  z-index: 1;
+  position: sticky;
+  top: 10px;
+  width: max-content;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 5px 7px;
+  margin: 10px 0 10px calc(100% - 80px);
+  cursor: pointer;
+  background-color: #e6e6e6;
+}
+.logwrapper .logexpander:after {
+  content: "expand [+]";
+}
+.logwrapper .logexpander:hover {
+  color: #000;
+  border-color: #000;
+}
+.logwrapper .log {
+  min-height: 40px;
+  position: relative;
+  top: -50px;
+  height: calc(100% + 50px);
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  padding: 5px;
+  padding-right: 80px;
+  white-space: pre-wrap;
+}
+
+div.media {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin: 0 5px;
+  overflow: hidden;
+  width: 320px;
+}
+
+.media-container {
+  display: grid;
+  grid-template-columns: 25px auto 25px;
+  align-items: center;
+  flex: 1 1;
+  overflow: hidden;
+  height: 200px;
+}
+
+.media-container--fullscreen {
+  grid-template-columns: 0px auto 0px;
+}
+
+.media-container__nav--right,
+.media-container__nav--left {
+  text-align: center;
+  cursor: pointer;
+}
+
+.media-container__viewport {
+  cursor: pointer;
+  text-align: center;
+  height: inherit;
+}
+.media-container__viewport img,
+.media-container__viewport video {
+  object-fit: cover;
+  width: 100%;
+  max-height: 100%;
+}
+
+.media__name,
+.media__counter {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  flex: 0 0 25px;
+  align-items: center;
+}
+
+.collapsible td:not(.col-links) {
+  cursor: pointer;
+}
+.collapsible td:not(.col-links):hover::after {
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.col-result {
+  width: 130px;
+}
+.col-result:hover::after {
+  content: " (hide details)";
+}
+
+.col-result.collapsed:hover::after {
+  content: " (show details)";
+}
+
+#environment-header h2:hover::after {
+  content: " (hide details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+#environment-header.collapsed h2:hover::after {
+  content: " (show details)";
+  color: #bbb;
+  font-style: italic;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+.sortable.desc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: -12.5px;
+  border: 10px solid #4caf50;
+  border-bottom: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+.sortable.asc:after {
+  content: " ";
+  position: relative;
+  left: 5px;
+  bottom: 12.5px;
+  border: 10px solid #4caf50;
+  border-top: 0;
+  border-left-color: transparent;
+  border-right-color: transparent;
+}
+
+.hidden, .summary__reload__button.hidden {
+  display: none;
+}
+
+.summary__data {
+  flex: 0 0 550px;
+}
+.summary__reload {
+  flex: 1 1;
+  display: flex;
+  justify-content: center;
+}
+.summary__reload__button {
+  flex: 0 0 300px;
+  display: flex;
+  color: white;
+  font-weight: bold;
+  background-color: #4caf50;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.summary__reload__button:hover {
+  background-color: #46a049;
+}
+.summary__spacer {
+  flex: 0 0 550px;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+.filters,
+.collapse {
+  display: flex;
+  align-items: center;
+}
+.filters button,
+.collapse button {
+  color: #999;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.filters button:hover,
+.collapse button:hover {
+  color: #ccc;
+}
+
+.filter__label {
+  margin-right: 10px;
+}
+
+      </style>
+    
+  </head>
+  <body>
+    <h1 id="title">pwa_report.html</h1>
+    <p>Report generated on 14-Nov-2025 at 08:57:05 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a>
+        v4.1.1</p>
+    <div id="environment-header">
+      <h2>Environment</h2>
+    </div>
+    <table id="environment"></table>
+    <!-- TEMPLATES -->
+      <template id="template_environment_row">
+      <tr>
+        <td></td>
+        <td></td>
+      </tr>
+    </template>
+    <template id="template_results-table__body--empty">
+      <tbody class="results-table-row">
+        <tr id="not-found-message">
+          <td colspan="4">No results found. Check the filters.</th>
+        </tr>
+    </template>
+    <template id="template_results-table__tbody">
+      <tbody class="results-table-row">
+        <tr class="collapsible">
+        </tr>
+        <tr class="extras-row">
+          <td class="extra" colspan="4">
+            <div class="extraHTML"></div>
+            <div class="media">
+              <div class="media-container">
+                  <div class="media-container__nav--left"><</div>
+                  <div class="media-container__viewport">
+                    <img src="" />
+                    <video controls>
+                      <source src="" type="video/mp4">
+                    </video>
+                  </div>
+                  <div class="media-container__nav--right">></div>
+                </div>
+                <div class="media__name"></div>
+                <div class="media__counter"></div>
+            </div>
+            <div class="logwrapper">
+              <div class="logexpander"></div>
+              <div class="log"></div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </template>
+    <!-- END TEMPLATES -->
+    <div class="summary">
+      <div class="summary__data">
+        <h2>Summary</h2>
+        <div class="additional-summary prefix">
+        </div>
+        <p class="run-count">49 tests took 00:01:41.</p>
+        <p class="filter">(Un)check the boxes to filter the results.</p>
+        <div class="summary__reload">
+          <div class="summary__reload__button hidden" onclick="location.reload()">
+            <div>There are still tests running. <br />Reload this page to get the latest results!</div>
+          </div>
+        </div>
+        <div class="summary__spacer"></div>
+        <div class="controls">
+          <div class="filters">
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="failed" />
+            <span class="failed">45 Failed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="passed" />
+            <span class="passed">4 Passed,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="skipped" disabled/>
+            <span class="skipped">0 Skipped,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xfailed" disabled/>
+            <span class="xfailed">0 Expected failures,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="xpassed" disabled/>
+            <span class="xpassed">0 Unexpected passes,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="error" disabled/>
+            <span class="error">0 Errors,</span>
+            <input checked="true" class="filter" name="filter_checkbox" type="checkbox" data-test-result="rerun" disabled/>
+            <span class="rerun">0 Reruns</span>
+          </div>
+          <div class="collapse">
+            <button id="show_all_details">Show all details</button>&nbsp;/&nbsp;<button id="hide_all_details">Hide all details</button>
+          </div>
+        </div>
+      </div>
+      <div class="additional-summary summary">
+      </div>
+      <div class="additional-summary postfix">
+      </div>
+    </div>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable" data-column-type="result">Result</th>
+          <th class="sortable" data-column-type="testId">Test</th>
+          <th class="sortable" data-column-type="duration">Duration</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+    </table>
+  </body>
+  <footer>
+    <div id="data-container" data-jsonblob="{&#34;environment&#34;: {&#34;Python&#34;: &#34;3.10.12&#34;, &#34;Platform&#34;: &#34;Linux-6.12.54-linuxkit-aarch64-with-glibc2.35&#34;, &#34;Packages&#34;: {&#34;pytest&#34;: &#34;7.4.3&#34;, &#34;pluggy&#34;: &#34;1.6.0&#34;}, &#34;Plugins&#34;: {&#34;html&#34;: &#34;4.1.1&#34;, &#34;metadata&#34;: &#34;3.1.1&#34;, &#34;asyncio&#34;: &#34;0.21.1&#34;, &#34;anyio&#34;: &#34;3.7.1&#34;, &#34;base-url&#34;: &#34;2.1.0&#34;, &#34;playwright&#34;: &#34;0.4.3&#34;}, &#34;Base URL&#34;: &#34;&#34;}, &#34;tests&#34;: {&#34;tests/pwa/test_offline_functionality.py::TestOfflineDetection::test_offline_banner_displayed[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestOfflineDetection::test_offline_banner_displayed[chromium]&#34;, &#34;duration&#34;: &#34;280 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestOfflineDetection::test_offline_banner_displayed[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;280 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:20: in test_offline_banner_displayed\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestOfflineDetection::test_online_status_restored[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestOfflineDetection::test_online_status_restored[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestOfflineDetection::test_online_status_restored[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:47: in test_online_status_restored\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestOfflineCaching::test_page_loads_from_cache_when_offline[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestOfflineCaching::test_page_loads_from_cache_when_offline[chromium]&#34;, &#34;duration&#34;: &#34;17 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestOfflineCaching::test_page_loads_from_cache_when_offline[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;17 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:75: in test_page_loads_from_cache_when_offline\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestOfflineCaching::test_static_assets_available_offline[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestOfflineCaching::test_static_assets_available_offline[chromium]&#34;, &#34;duration&#34;: &#34;17 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestOfflineCaching::test_static_assets_available_offline[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;17 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:101: in test_static_assets_available_offline\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestOfflineRequestQueuing::test_offline_request_handling[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestOfflineRequestQueuing::test_offline_request_handling[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestOfflineRequestQueuing::test_offline_request_handling[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:139: in test_offline_request_handling\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestOfflineRequestQueuing::test_service_worker_offline_response[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestOfflineRequestQueuing::test_service_worker_offline_response[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestOfflineRequestQueuing::test_service_worker_offline_response[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:167: in test_service_worker_offline_response\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestCacheStrategy::test_cache_first_for_static_assets[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestCacheStrategy::test_cache_first_for_static_assets[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestCacheStrategy::test_cache_first_for_static_assets[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:214: in test_cache_first_for_static_assets\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestCacheStrategy::test_network_first_for_api[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestCacheStrategy::test_network_first_for_api[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestCacheStrategy::test_network_first_for_api[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:244: in test_network_first_for_api\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_offline_functionality.py::TestBackgroundSync::test_background_sync_registration[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_offline_functionality.py::TestBackgroundSync::test_background_sync_registration[chromium]&#34;, &#34;duration&#34;: &#34;546 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_offline_functionality.py::TestBackgroundSync::test_background_sync_registration[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;546 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_offline_functionality.py:280: in test_background_sync_registration\n    has_background_sync = pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: TypeError: Cannot read properties of undefined (reading &amp;#x27;ready&amp;#x27;)\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:1:41)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerRegistration::test_service_worker_registration[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerRegistration::test_service_worker_registration[chromium]&#34;, &#34;duration&#34;: &#34;534 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerRegistration::test_service_worker_registration[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;534 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:24: in test_service_worker_registration\n    assert has_service_worker, &amp;quot;Service Worker\u304c\u30b5\u30dd\u30fc\u30c8\u3055\u308c\u3066\u3044\u307e\u305b\u3093&amp;quot;\nE   AssertionError: Service Worker\u304c\u30b5\u30dd\u30fc\u30c8\u3055\u308c\u3066\u3044\u307e\u305b\u3093\nE   assert False\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerRegistration::test_service_worker_file_exists[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerRegistration::test_service_worker_file_exists[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerRegistration::test_service_worker_file_exists[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:58: in test_service_worker_file_exists\n    response = page.goto(&amp;quot;http://localhost:8000/sw.js&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/sw.js\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerCaching::test_cache_creation[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerCaching::test_cache_creation[chromium]&#34;, &#34;duration&#34;: &#34;00:00:03&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerCaching::test_cache_creation[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:03&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:78: in test_cache_creation\n    cache_names = pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: ReferenceError: caches is not defined\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:2:17)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerCaching::test_static_assets_cached[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerCaching::test_static_assets_cached[chromium]&#34;, &#34;duration&#34;: &#34;00:00:03&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerCaching::test_static_assets_cached[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:03&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:106: in test_static_assets_cached\n    cached_files = pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: ReferenceError: caches is not defined\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:2:36)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerOffline::test_offline_page_fallback[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerOffline::test_offline_page_fallback[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerOffline::test_offline_page_fallback[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:140: in test_offline_page_fallback\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerOffline::test_cache_first_strategy[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerOffline::test_cache_first_strategy[chromium]&#34;, &#34;duration&#34;: &#34;00:00:02&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerOffline::test_cache_first_strategy[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:02&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerUpdate::test_service_worker_update_detection[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerUpdate::test_service_worker_update_detection[chromium]&#34;, &#34;duration&#34;: &#34;543 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerUpdate::test_service_worker_update_detection[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;543 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:195: in test_service_worker_update_detection\n    sw_state = pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: TypeError: Cannot read properties of undefined (reading &amp;#x27;ready&amp;#x27;)\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:2:68)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerUpdate::test_cache_cleanup_on_activate[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerUpdate::test_cache_cleanup_on_activate[chromium]&#34;, &#34;duration&#34;: &#34;00:00:03&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerUpdate::test_cache_cleanup_on_activate[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:03&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:219: in test_cache_cleanup_on_activate\n    initial_caches = pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: ReferenceError: caches is not defined\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:2:17)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_service_worker.py::TestServiceWorkerMessaging::test_clear_cache_message[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_service_worker.py::TestServiceWorkerMessaging::test_clear_cache_message[chromium]&#34;, &#34;duration&#34;: &#34;00:00:03&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_service_worker.py::TestServiceWorkerMessaging::test_clear_cache_message[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:03&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_service_worker.py:279: in test_clear_cache_message\n    result = pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: TypeError: Cannot read properties of undefined (reading &amp;#x27;controller&amp;#x27;)\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:2:45)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestSPABasicRouting::test_initial_page_load[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestSPABasicRouting::test_initial_page_load[chromium]&#34;, &#34;duration&#34;: &#34;21 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestSPABasicRouting::test_initial_page_load[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;21 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:19: in test_initial_page_load\n    response = page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestSPABasicRouting::test_page_has_essential_elements[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestSPABasicRouting::test_page_has_essential_elements[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestSPABasicRouting::test_page_has_essential_elements[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:38: in test_page_has_essential_elements\n    expect(header).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;.app-header&amp;quot;)\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_action_punch_in_parameter[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_action_punch_in_parameter[chromium]&#34;, &#34;duration&#34;: &#34;24 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_action_punch_in_parameter[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;24 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:61: in test_action_punch_in_parameter\n    page.goto(&amp;quot;http://localhost:8000/pwa/?action=punch_in&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/?action=punch_in\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_action_punch_out_parameter[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_action_punch_out_parameter[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_action_punch_out_parameter[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:75: in test_action_punch_out_parameter\n    page.goto(&amp;quot;http://localhost:8000/pwa/?action=punch_out&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/?action=punch_out\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_invalid_action_parameter[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_invalid_action_parameter[chromium]&#34;, &#34;duration&#34;: &#34;19 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestQueryParameterHandling::test_invalid_action_parameter[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;19 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:89: in test_invalid_action_parameter\n    page.goto(&amp;quot;http://localhost:8000/pwa/?action=invalid&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/?action=invalid\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestBrowserHistory::test_browser_back_button[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestBrowserHistory::test_browser_back_button[chromium]&#34;, &#34;duration&#34;: &#34;22 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestBrowserHistory::test_browser_back_button[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;22 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:111: in test_browser_back_button\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestBrowserHistory::test_browser_forward_button[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestBrowserHistory::test_browser_forward_button[chromium]&#34;, &#34;duration&#34;: &#34;19 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestBrowserHistory::test_browser_forward_button[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;19 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:133: in test_browser_forward_button\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestStateManagement::test_connection_status_display[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestStateManagement::test_connection_status_display[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestStateManagement::test_connection_status_display[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:155: in test_connection_status_display\n    expect(connection_status).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;#connectionStatus&amp;quot;)\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestStateManagement::test_current_time_display[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestStateManagement::test_current_time_display[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestStateManagement::test_current_time_display[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:166: in test_current_time_display\n    expect(current_time).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;#currentTime&amp;quot;)\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestStateManagement::test_scan_button_interactive[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestStateManagement::test_scan_button_interactive[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestStateManagement::test_scan_button_interactive[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:180: in test_scan_button_interactive\n    expect(scan_button).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;#scanButton&amp;quot;)\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestDeepLinking::test_direct_access_with_parameters[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestDeepLinking::test_direct_access_with_parameters[chromium]&#34;, &#34;duration&#34;: &#34;29 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestDeepLinking::test_direct_access_with_parameters[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;29 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:211: in test_direct_access_with_parameters\n    page.goto(&amp;quot;http://localhost:8000/pwa/?action=punch_in&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/?action=punch_in\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestDeepLinking::test_deep_link_preserves_state[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestDeepLinking::test_deep_link_preserves_state[chromium]&#34;, &#34;duration&#34;: &#34;18 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestDeepLinking::test_deep_link_preserves_state[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;18 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:225: in test_deep_link_preserves_state\n    page.goto(&amp;quot;http://localhost:8000/pwa/?action=punch_out&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/?action=punch_out\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestPageReload::test_page_reload_preserves_url[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestPageReload::test_page_reload_preserves_url[chromium]&#34;, &#34;duration&#34;: &#34;17 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestPageReload::test_page_reload_preserves_url[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;17 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:245: in test_page_reload_preserves_url\n    page.goto(&amp;quot;http://localhost:8000/pwa/?action=punch_in&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/?action=punch_in\n&#34;}], &#34;tests/pwa/test_spa_routing.py::TestPageReload::test_page_reload_loads_correctly[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_spa_routing.py::TestPageReload::test_page_reload_loads_correctly[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_spa_routing.py::TestPageReload::test_page_reload_loads_correctly[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_spa_routing.py:264: in test_page_reload_loads_correctly\n    expect(app).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;#app&amp;quot;)\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_mobile_viewport_layout[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_mobile_viewport_layout[chromium]&#34;, &#34;duration&#34;: &#34;27 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_mobile_viewport_layout[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;27 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:20: in test_mobile_viewport_layout\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_tablet_viewport_layout[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_tablet_viewport_layout[chromium]&#34;, &#34;duration&#34;: &#34;15 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_tablet_viewport_layout[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;15 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:42: in test_tablet_viewport_layout\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_desktop_viewport_layout[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_desktop_viewport_layout[chromium]&#34;, &#34;duration&#34;: &#34;15 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestResponsiveDesign::test_desktop_viewport_layout[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;15 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:60: in test_desktop_viewport_layout\n    page.goto(&amp;quot;http://localhost:8000/pwa/&amp;quot;, wait_until=&amp;quot;networkidle&amp;quot;)\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:9312: in goto\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:475: in goto\n    return await self._main_frame.goto(**locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:139: in goto\n    await self._channel.send(&amp;quot;goto&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: net::ERR_CONNECTION_REFUSED at http://localhost:8000/pwa/\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestTouchInteraction::test_scan_button_tap[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestTouchInteraction::test_scan_button_tap[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestTouchInteraction::test_scan_button_tap[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:85: in test_scan_button_tap\n    expect(scan_button).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;#scanButton&amp;quot;)\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestTouchInteraction::test_button_touch_feedback[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestTouchInteraction::test_button_touch_feedback[chromium]&#34;, &#34;duration&#34;: &#34;558 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestTouchInteraction::test_button_touch_feedback[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;558 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:108: in test_button_touch_feedback\n    button_styles = pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: TypeError: Failed to execute &amp;#x27;getComputedStyle&amp;#x27; on &amp;#x27;Window&amp;#x27;: parameter 1 is not of type &amp;#x27;Element&amp;#x27;.\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:3:39)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestErrorDisplay::test_error_message_display[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestErrorDisplay::test_error_message_display[chromium]&#34;, &#34;duration&#34;: &#34;00:00:31&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestErrorDisplay::test_error_message_display[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:31&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:137: in test_error_message_display\n    scan_button.click()\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:15784: in click\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_locator.py:159: in click\n    return await self._frame.click(self._selector, strict=True, **params)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:484: in click\n    await self._channel.send(&amp;quot;click&amp;quot;, locals_to_params(locals()))\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.TimeoutError: Timeout 30000ms exceeded.\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestErrorDisplay::test_retry_button_functionality[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestErrorDisplay::test_retry_button_functionality[chromium]&#34;, &#34;duration&#34;: &#34;544 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestErrorDisplay::test_retry_button_functionality[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;544 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:155: in test_retry_button_functionality\n    pwa_page.evaluate(\n/usr/local/lib/python3.10/dist-packages/playwright/sync_api/_generated.py:8710: in evaluate\n    self._sync(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_page.py:391: in evaluate\n    return await self._main_frame.evaluate(expression, arg)\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_frame.py:272: in evaluate\n    await self._channel.send(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:62: in send\n    return await self._connection.wrap_api_call(\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:492: in wrap_api_call\n    return await cb()\n/usr/local/lib/python3.10/dist-packages/playwright/_impl/_connection.py:100: in inner_send\n    result = next(iter(done)).result()\nE   playwright._impl._errors.Error: TypeError: Cannot read properties of null (reading &amp;#x27;style&amp;#x27;)\nE       at eval (eval at evaluate (:226:30), &amp;lt;anonymous&amp;gt;:3:53)\nE       at UtilityScript.evaluate (&amp;lt;anonymous&amp;gt;:233:19)\nE       at UtilityScript.&amp;lt;anonymous&amp;gt; (&amp;lt;anonymous&amp;gt;:1:44)\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestLoadingStates::test_loading_overlay_exists[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestLoadingStates::test_loading_overlay_exists[chromium]&#34;, &#34;duration&#34;: &#34;563 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestLoadingStates::test_loading_overlay_exists[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;563 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:183: in test_loading_overlay_exists\n    assert loading_overlay.count() &amp;gt; 0, &amp;quot;\u30ed\u30fc\u30c7\u30a3\u30f3\u30b0\u30aa\u30fc\u30d0\u30fc\u30ec\u30a4\u304c\u5b58\u5728\u3057\u307e\u305b\u3093&amp;quot;\nE   AssertionError: \u30ed\u30fc\u30c7\u30a3\u30f3\u30b0\u30aa\u30fc\u30d0\u30fc\u30ec\u30a4\u304c\u5b58\u5728\u3057\u307e\u305b\u3093\nE   assert 0 &amp;gt; 0\nE    +  where 0 = &amp;lt;bound method Locator.count of &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#loadingOverlay&amp;#x27;&amp;gt;&amp;gt;()\nE    +    where &amp;lt;bound method Locator.count of &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#loadingOverlay&amp;#x27;&amp;gt;&amp;gt; = &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#loadingOverlay&amp;#x27;&amp;gt;.count\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestLoadingStates::test_scan_progress_animation[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestLoadingStates::test_scan_progress_animation[chromium]&#34;, &#34;duration&#34;: &#34;566 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestLoadingStates::test_scan_progress_animation[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;566 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:190: in test_scan_progress_animation\n    assert scan_progress.count() &amp;gt; 0, &amp;quot;\u30b9\u30ad\u30e3\u30f3\u9032\u884c\u4e2d\u8981\u7d20\u304c\u5b58\u5728\u3057\u307e\u305b\u3093&amp;quot;\nE   AssertionError: \u30b9\u30ad\u30e3\u30f3\u9032\u884c\u4e2d\u8981\u7d20\u304c\u5b58\u5728\u3057\u307e\u305b\u3093\nE   assert 0 &amp;gt; 0\nE    +  where 0 = &amp;lt;bound method Locator.count of &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#scanProgress&amp;#x27;&amp;gt;&amp;gt;()\nE    +    where &amp;lt;bound method Locator.count of &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#scanProgress&amp;#x27;&amp;gt;&amp;gt; = &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#scanProgress&amp;#x27;&amp;gt;.count\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestSuccessState::test_success_message_structure[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestSuccessState::test_success_message_structure[chromium]&#34;, &#34;duration&#34;: &#34;567 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestSuccessState::test_success_message_structure[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;567 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:206: in test_success_message_structure\n    assert scan_success.count() &amp;gt; 0, &amp;quot;\u6210\u529f\u8868\u793a\u8981\u7d20\u304c\u5b58\u5728\u3057\u307e\u305b\u3093&amp;quot;\nE   AssertionError: \u6210\u529f\u8868\u793a\u8981\u7d20\u304c\u5b58\u5728\u3057\u307e\u305b\u3093\nE   assert 0 &amp;gt; 0\nE    +  where 0 = &amp;lt;bound method Locator.count of &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#scanSuccess&amp;#x27;&amp;gt;&amp;gt;()\nE    +    where &amp;lt;bound method Locator.count of &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#scanSuccess&amp;#x27;&amp;gt;&amp;gt; = &amp;lt;Locator frame=&amp;lt;Frame name= url=&amp;#x27;http://app:8000/pwa/&amp;#x27;&amp;gt; selector=&amp;#x27;#scanSuccess&amp;#x27;&amp;gt;.count\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestHistoryDisplay::test_history_section_exists[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestHistoryDisplay::test_history_section_exists[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestHistoryDisplay::test_history_section_exists[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:230: in test_history_section_exists\n    expect(history_section).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;.history-section&amp;quot;)\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestHistoryDisplay::test_empty_history_message[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestHistoryDisplay::test_empty_history_message[chromium]&#34;, &#34;duration&#34;: &#34;571 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestHistoryDisplay::test_empty_history_message[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;571 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/pwa/test_ui_ux.py::TestAnimations::test_pulse_animation_css[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestAnimations::test_pulse_animation_css[chromium]&#34;, &#34;duration&#34;: &#34;554 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestAnimations::test_pulse_animation_css[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;554 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}], &#34;tests/pwa/test_ui_ux.py::TestHeaderAndFooter::test_header_structure[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestHeaderAndFooter::test_header_structure[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestHeaderAndFooter::test_header_structure[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:294: in test_header_structure\n    expect(header).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;.app-header&amp;quot;)\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestHeaderAndFooter::test_footer_structure[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestHeaderAndFooter::test_footer_structure[chromium]&#34;, &#34;duration&#34;: &#34;00:00:06&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestHeaderAndFooter::test_footer_structure[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;00:00:06&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:309: in test_footer_structure\n    expect(footer).to_be_visible()\nE   AssertionError: Locator expected to be visible\nE   Actual value: None \nE   Call log:\nE   LocatorAssertions.to_be_visible with timeout 5000ms\nE     - waiting for locator(&amp;quot;.app-footer&amp;quot;)\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestColorScheme::test_theme_color_applied[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Failed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestColorScheme::test_theme_color_applied[chromium]&#34;, &#34;duration&#34;: &#34;555 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Failed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestColorScheme::test_theme_color_applied[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;555 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;tests/pwa/test_ui_ux.py:338: in test_theme_color_applied\n    assert theme_color is not None, &amp;quot;\u30c6\u30fc\u30de\u30ab\u30e9\u30fc\u30e1\u30bf\u30bf\u30b0\u304c\u5b58\u5728\u3057\u307e\u305b\u3093&amp;quot;\nE   AssertionError: \u30c6\u30fc\u30de\u30ab\u30e9\u30fc\u30e1\u30bf\u30bf\u30b0\u304c\u5b58\u5728\u3057\u307e\u305b\u3093\nE   assert None is not None\n&#34;}], &#34;tests/pwa/test_ui_ux.py::TestColorScheme::test_css_custom_properties[chromium]&#34;: [{&#34;extras&#34;: [], &#34;result&#34;: &#34;Passed&#34;, &#34;testId&#34;: &#34;tests/pwa/test_ui_ux.py::TestColorScheme::test_css_custom_properties[chromium]&#34;, &#34;duration&#34;: &#34;600 ms&#34;, &#34;resultsTableRow&#34;: [&#34;&lt;td class=\&#34;col-result\&#34;&gt;Passed&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-testId\&#34;&gt;tests/pwa/test_ui_ux.py::TestColorScheme::test_css_custom_properties[chromium]&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-duration\&#34;&gt;600 ms&lt;/td&gt;&#34;, &#34;&lt;td class=\&#34;col-links\&#34;&gt;&lt;/td&gt;&#34;], &#34;log&#34;: &#34;No log output captured.&#34;}]}, &#34;renderCollapsed&#34;: [&#34;passed&#34;], &#34;initialSort&#34;: &#34;result&#34;, &#34;title&#34;: &#34;pwa_report.html&#34;}"></div>
+    <script>
+      (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const { getCollapsedCategory, setCollapsedIds } = require('./storage.js')
+
+class DataManager {
+    setManager(data) {
+        const collapsedCategories = [...getCollapsedCategory(data.renderCollapsed)]
+        const collapsedIds = []
+        const tests = Object.values(data.tests).flat().map((test, index) => {
+            const collapsed = collapsedCategories.includes(test.result.toLowerCase())
+            const id = `test_${index}`
+            if (collapsed) {
+                collapsedIds.push(id)
+            }
+            return {
+                ...test,
+                id,
+                collapsed,
+            }
+        })
+        const dataBlob = { ...data, tests }
+        this.data = { ...dataBlob }
+        this.renderData = { ...dataBlob }
+        setCollapsedIds(collapsedIds)
+    }
+
+    get allData() {
+        return { ...this.data }
+    }
+
+    resetRender() {
+        this.renderData = { ...this.data }
+    }
+
+    setRender(data) {
+        this.renderData.tests = [...data]
+    }
+
+    toggleCollapsedItem(id) {
+        this.renderData.tests = this.renderData.tests.map((test) =>
+            test.id === id ? { ...test, collapsed: !test.collapsed } : test,
+        )
+    }
+
+    set allCollapsed(collapsed) {
+        this.renderData = { ...this.renderData, tests: [...this.renderData.tests.map((test) => (
+            { ...test, collapsed }
+        ))] }
+    }
+
+    get testSubset() {
+        return [...this.renderData.tests]
+    }
+
+    get environment() {
+        return this.renderData.environment
+    }
+
+    get initialSort() {
+        return this.data.initialSort
+    }
+}
+
+module.exports = {
+    manager: new DataManager(),
+}
+
+},{"./storage.js":8}],2:[function(require,module,exports){
+const mediaViewer = require('./mediaviewer.js')
+const templateEnvRow = document.getElementById('template_environment_row')
+const templateResult = document.getElementById('template_results-table__tbody')
+
+function htmlToElements(html) {
+    const temp = document.createElement('template')
+    temp.innerHTML = html
+    return temp.content.childNodes
+}
+
+const find = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return elem.querySelector(selector)
+}
+
+const findAll = (selector, elem) => {
+    if (!elem) {
+        elem = document
+    }
+    return [...elem.querySelectorAll(selector)]
+}
+
+const dom = {
+    getStaticRow: (key, value) => {
+        const envRow = templateEnvRow.content.cloneNode(true)
+        const isObj = typeof value === 'object' && value !== null
+        const values = isObj ? Object.keys(value).map((k) => `${k}: ${value[k]}`) : null
+
+        const valuesElement = htmlToElements(
+            values ? `<ul>${values.map((val) => `<li>${val}</li>`).join('')}<ul>` : `<div>${value}</div>`)[0]
+        const td = findAll('td', envRow)
+        td[0].textContent = key
+        td[1].appendChild(valuesElement)
+
+        return envRow
+    },
+    getResultTBody: ({ testId, id, log, extras, resultsTableRow, tableHtml, result, collapsed }) => {
+        const resultBody = templateResult.content.cloneNode(true)
+        resultBody.querySelector('tbody').classList.add(result.toLowerCase())
+        resultBody.querySelector('tbody').id = testId
+        resultBody.querySelector('.collapsible').dataset.id = id
+
+        resultsTableRow.forEach((html) => {
+            const t = document.createElement('template')
+            t.innerHTML = html
+            resultBody.querySelector('.collapsible').appendChild(t.content)
+        })
+
+        if (log) {
+            // Wrap lines starting with "E" with span.error to color those lines red
+            const wrappedLog = log.replace(/^E.*$/gm, (match) => `<span class="error">${match}</span>`)
+            resultBody.querySelector('.log').innerHTML = wrappedLog
+        } else {
+            resultBody.querySelector('.log').remove()
+        }
+
+        if (collapsed) {
+            resultBody.querySelector('.collapsible > td')?.classList.add('collapsed')
+            resultBody.querySelector('.extras-row').classList.add('hidden')
+        } else {
+            resultBody.querySelector('.collapsible > td')?.classList.remove('collapsed')
+        }
+
+        const media = []
+        extras?.forEach(({ name, format_type, content }) => {
+            if (['image', 'video'].includes(format_type)) {
+                media.push({ path: content, name, format_type })
+            }
+
+            if (format_type === 'html') {
+                resultBody.querySelector('.extraHTML').insertAdjacentHTML('beforeend', `<div>${content}</div>`)
+            }
+        })
+        mediaViewer.setup(resultBody, media)
+
+        // Add custom html from the pytest_html_results_table_html hook
+        tableHtml?.forEach((item) => {
+            resultBody.querySelector('td[class="extra"]').insertAdjacentHTML('beforeend', item)
+        })
+
+        return resultBody
+    },
+}
+
+module.exports = {
+    dom,
+    htmlToElements,
+    find,
+    findAll,
+}
+
+},{"./mediaviewer.js":6}],3:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const storageModule = require('./storage.js')
+
+const getFilteredSubSet = (filter) =>
+    manager.allData.tests.filter(({ result }) => filter.includes(result.toLowerCase()))
+
+const doInitFilter = () => {
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+}
+
+const doFilter = (type, show) => {
+    if (show) {
+        storageModule.showCategory(type)
+    } else {
+        storageModule.hideCategory(type)
+    }
+
+    const currentFilter = storageModule.getVisible()
+    const filteredSubset = getFilteredSubSet(currentFilter)
+    manager.setRender(filteredSubset)
+
+    const sortColumn = storageModule.getSort()
+    doSort(sortColumn, true)
+}
+
+module.exports = {
+    doFilter,
+    doInitFilter,
+}
+
+},{"./datamanager.js":1,"./sort.js":7,"./storage.js":8}],4:[function(require,module,exports){
+const { redraw, bindEvents, renderStatic } = require('./main.js')
+const { doInitFilter } = require('./filter.js')
+const { doInitSort } = require('./sort.js')
+const { manager } = require('./datamanager.js')
+const data = JSON.parse(document.getElementById('data-container').dataset.jsonblob)
+
+function init() {
+    manager.setManager(data)
+    doInitFilter()
+    doInitSort()
+    renderStatic()
+    redraw()
+    bindEvents()
+}
+
+init()
+
+},{"./datamanager.js":1,"./filter.js":3,"./main.js":5,"./sort.js":7}],5:[function(require,module,exports){
+const { dom, find, findAll } = require('./dom.js')
+const { manager } = require('./datamanager.js')
+const { doSort } = require('./sort.js')
+const { doFilter } = require('./filter.js')
+const {
+    getVisible,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    getSortDirection,
+    possibleFilters,
+} = require('./storage.js')
+
+const removeChildren = (node) => {
+    while (node.firstChild) {
+        node.removeChild(node.firstChild)
+    }
+}
+
+const renderStatic = () => {
+    const renderEnvironmentTable = () => {
+        const environment = manager.environment
+        const rows = Object.keys(environment).map((key) => dom.getStaticRow(key, environment[key]))
+        const table = document.getElementById('environment')
+        removeChildren(table)
+        rows.forEach((row) => table.appendChild(row))
+    }
+    renderEnvironmentTable()
+}
+
+const addItemToggleListener = (elem) => {
+    elem.addEventListener('click', ({ target }) => {
+        const id = target.parentElement.dataset.id
+        manager.toggleCollapsedItem(id)
+
+        const collapsedIds = getCollapsedIds()
+        if (collapsedIds.includes(id)) {
+            const updated = collapsedIds.filter((item) => item !== id)
+            setCollapsedIds(updated)
+        } else {
+            collapsedIds.push(id)
+            setCollapsedIds(collapsedIds)
+        }
+        redraw()
+    })
+}
+
+const renderContent = (tests) => {
+    const sortAttr = getSort(manager.initialSort)
+    const sortAsc = JSON.parse(getSortDirection())
+    const rows = tests.map(dom.getResultTBody)
+    const table = document.getElementById('results-table')
+    const tableHeader = document.getElementById('results-table-head')
+
+    const newTable = document.createElement('table')
+    newTable.id = 'results-table'
+
+    // remove all sorting classes and set the relevant
+    findAll('.sortable', tableHeader).forEach((elem) => elem.classList.remove('asc', 'desc'))
+    tableHeader.querySelector(`.sortable[data-column-type="${sortAttr}"]`)?.classList.add(sortAsc ? 'desc' : 'asc')
+    newTable.appendChild(tableHeader)
+
+    if (!rows.length) {
+        const emptyTable = document.getElementById('template_results-table__body--empty').content.cloneNode(true)
+        newTable.appendChild(emptyTable)
+    } else {
+        rows.forEach((row) => {
+            if (!!row) {
+                findAll('.collapsible td:not(.col-links', row).forEach(addItemToggleListener)
+                find('.logexpander', row).addEventListener('click',
+                    (evt) => evt.target.parentNode.classList.toggle('expanded'),
+                )
+                newTable.appendChild(row)
+            }
+        })
+    }
+
+    table.replaceWith(newTable)
+}
+
+const renderDerived = () => {
+    const currentFilter = getVisible()
+    possibleFilters.forEach((result) => {
+        const input = document.querySelector(`input[data-test-result="${result}"]`)
+        input.checked = currentFilter.includes(result)
+    })
+}
+
+const bindEvents = () => {
+    const filterColumn = (evt) => {
+        const { target: element } = evt
+        const { testResult } = element.dataset
+
+        doFilter(testResult, element.checked)
+        const collapsedIds = getCollapsedIds()
+        const updated = manager.renderData.tests.map((test) => {
+            return {
+                ...test,
+                collapsed: collapsedIds.includes(test.id),
+            }
+        })
+        manager.setRender(updated)
+        redraw()
+    }
+
+    const header = document.getElementById('environment-header')
+    header.addEventListener('click', () => {
+        const table = document.getElementById('environment')
+        table.classList.toggle('hidden')
+        header.classList.toggle('collapsed')
+    })
+
+    findAll('input[name="filter_checkbox"]').forEach((elem) => {
+        elem.addEventListener('click', filterColumn)
+    })
+
+    findAll('.sortable').forEach((elem) => {
+        elem.addEventListener('click', (evt) => {
+            const { target: element } = evt
+            const { columnType } = element.dataset
+            doSort(columnType)
+            redraw()
+        })
+    })
+
+    document.getElementById('show_all_details').addEventListener('click', () => {
+        manager.allCollapsed = false
+        setCollapsedIds([])
+        redraw()
+    })
+    document.getElementById('hide_all_details').addEventListener('click', () => {
+        manager.allCollapsed = true
+        const allIds = manager.renderData.tests.map((test) => test.id)
+        setCollapsedIds(allIds)
+        redraw()
+    })
+}
+
+const redraw = () => {
+    const { testSubset } = manager
+
+    renderContent(testSubset)
+    renderDerived()
+}
+
+module.exports = {
+    redraw,
+    bindEvents,
+    renderStatic,
+}
+
+},{"./datamanager.js":1,"./dom.js":2,"./filter.js":3,"./sort.js":7,"./storage.js":8}],6:[function(require,module,exports){
+class MediaViewer {
+    constructor(assets) {
+        this.assets = assets
+        this.index = 0
+    }
+
+    nextActive() {
+        this.index = this.index === this.assets.length - 1 ? 0 : this.index + 1
+        return [this.activeFile, this.index]
+    }
+
+    prevActive() {
+        this.index = this.index === 0 ? this.assets.length - 1 : this.index -1
+        return [this.activeFile, this.index]
+    }
+
+    get currentIndex() {
+        return this.index
+    }
+
+    get activeFile() {
+        return this.assets[this.index]
+    }
+}
+
+
+const setup = (resultBody, assets) => {
+    if (!assets.length) {
+        resultBody.querySelector('.media').classList.add('hidden')
+        return
+    }
+
+    const mediaViewer = new MediaViewer(assets)
+    const container = resultBody.querySelector('.media-container')
+    const leftArrow = resultBody.querySelector('.media-container__nav--left')
+    const rightArrow = resultBody.querySelector('.media-container__nav--right')
+    const mediaName = resultBody.querySelector('.media__name')
+    const counter = resultBody.querySelector('.media__counter')
+    const imageEl = resultBody.querySelector('img')
+    const sourceEl = resultBody.querySelector('source')
+    const videoEl = resultBody.querySelector('video')
+
+    const setImg = (media, index) => {
+        if (media?.format_type === 'image') {
+            imageEl.src = media.path
+
+            imageEl.classList.remove('hidden')
+            videoEl.classList.add('hidden')
+        } else if (media?.format_type === 'video') {
+            sourceEl.src = media.path
+
+            videoEl.classList.remove('hidden')
+            imageEl.classList.add('hidden')
+        }
+
+        mediaName.innerText = media?.name
+        counter.innerText = `${index + 1} / ${assets.length}`
+    }
+    setImg(mediaViewer.activeFile, mediaViewer.currentIndex)
+
+    const moveLeft = () => {
+        const [media, index] = mediaViewer.prevActive()
+        setImg(media, index)
+    }
+    const doRight = () => {
+        const [media, index] = mediaViewer.nextActive()
+        setImg(media, index)
+    }
+    const openImg = () => {
+        window.open(mediaViewer.activeFile.path, '_blank')
+    }
+    if (assets.length === 1) {
+        container.classList.add('media-container--fullscreen')
+    } else {
+        leftArrow.addEventListener('click', moveLeft)
+        rightArrow.addEventListener('click', doRight)
+    }
+    imageEl.addEventListener('click', openImg)
+}
+
+module.exports = {
+    setup,
+}
+
+},{}],7:[function(require,module,exports){
+const { manager } = require('./datamanager.js')
+const storageModule = require('./storage.js')
+
+const genericSort = (list, key, ascending, customOrder) => {
+    let sorted
+    if (customOrder) {
+        sorted = list.sort((a, b) => {
+            const aValue = a.result.toLowerCase()
+            const bValue = b.result.toLowerCase()
+
+            const aIndex = customOrder.findIndex((item) => item.toLowerCase() === aValue)
+            const bIndex = customOrder.findIndex((item) => item.toLowerCase() === bValue)
+
+            // Compare the indices to determine the sort order
+            return aIndex - bIndex
+        })
+    } else {
+        sorted = list.sort((a, b) => a[key] === b[key] ? 0 : a[key] > b[key] ? 1 : -1)
+    }
+
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const durationSort = (list, ascending) => {
+    const parseDuration = (duration) => {
+        if (duration.includes(':')) {
+            // If it's in the format "HH:mm:ss"
+            const [hours, minutes, seconds] = duration.split(':').map(Number)
+            return (hours * 3600 + minutes * 60 + seconds) * 1000
+        } else {
+            // If it's in the format "nnn ms"
+            return parseInt(duration)
+        }
+    }
+    const sorted = list.sort((a, b) => parseDuration(a['duration']) - parseDuration(b['duration']))
+    if (ascending) {
+        sorted.reverse()
+    }
+    return sorted
+}
+
+const doInitSort = () => {
+    const type = storageModule.getSort(manager.initialSort)
+    const ascending = storageModule.getSortDirection()
+    const list = manager.testSubset
+    const initialOrder = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed', 'Skipped', 'Passed']
+
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    if (type?.toLowerCase() === 'original') {
+        manager.setRender(list)
+    } else {
+        let sortedList
+        switch (type) {
+        case 'duration':
+            sortedList = durationSort(list, ascending)
+            break
+        case 'result':
+            sortedList = genericSort(list, type, ascending, initialOrder)
+            break
+        default:
+            sortedList = genericSort(list, type, ascending)
+            break
+        }
+        manager.setRender(sortedList)
+    }
+}
+
+const doSort = (type, skipDirection) => {
+    const newSortType = storageModule.getSort(manager.initialSort) !== type
+    const currentAsc = storageModule.getSortDirection()
+    let ascending
+    if (skipDirection) {
+        ascending = currentAsc
+    } else {
+        ascending = newSortType ? false : !currentAsc
+    }
+    storageModule.setSort(type)
+    storageModule.setSortDirection(ascending)
+
+    const list = manager.testSubset
+    const sortedList = type === 'duration' ? durationSort(list, ascending) : genericSort(list, type, ascending)
+    manager.setRender(sortedList)
+}
+
+module.exports = {
+    doInitSort,
+    doSort,
+}
+
+},{"./datamanager.js":1,"./storage.js":8}],8:[function(require,module,exports){
+const possibleFilters = [
+    'passed',
+    'skipped',
+    'failed',
+    'error',
+    'xfailed',
+    'xpassed',
+    'rerun',
+]
+
+const getVisible = () => {
+    const url = new URL(window.location.href)
+    const settings = new URLSearchParams(url.search).get('visible')
+    const lower = (item) => {
+        const lowerItem = item.toLowerCase()
+        if (possibleFilters.includes(lowerItem)) {
+            return lowerItem
+        }
+        return null
+    }
+    return settings === null ?
+        possibleFilters :
+        [...new Set(settings?.split(',').map(lower).filter((item) => item))]
+}
+
+const hideCategory = (categoryToHide) => {
+    const url = new URL(window.location.href)
+    const visibleParams = new URLSearchParams(url.search).get('visible')
+    const currentVisible = visibleParams ? visibleParams.split(',') : [...possibleFilters]
+    const settings = [...new Set(currentVisible)].filter((f) => f !== categoryToHide).join(',')
+
+    url.searchParams.set('visible', settings)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const showCategory = (categoryToShow) => {
+    if (typeof window === 'undefined') {
+        return
+    }
+    const url = new URL(window.location.href)
+    const currentVisible = new URLSearchParams(url.search).get('visible')?.split(',').filter(Boolean) ||
+        [...possibleFilters]
+    const settings = [...new Set([categoryToShow, ...currentVisible])]
+    const noFilter = possibleFilters.length === settings.length || !settings.length
+
+    noFilter ? url.searchParams.delete('visible') : url.searchParams.set('visible', settings.join(','))
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getSort = (initialSort) => {
+    const url = new URL(window.location.href)
+    let sort = new URLSearchParams(url.search).get('sort')
+    if (!sort) {
+        sort = initialSort || 'result'
+    }
+    return sort
+}
+
+const setSort = (type) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('sort', type)
+    window.history.pushState({}, null, unescape(url.href))
+}
+
+const getCollapsedCategory = (renderCollapsed) => {
+    let categories
+    if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        const collapsedItems = new URLSearchParams(url.search).get('collapsed')
+        switch (true) {
+        case !renderCollapsed && collapsedItems === null:
+            categories = ['passed']
+            break
+        case collapsedItems?.length === 0 || /^["']{2}$/.test(collapsedItems):
+            categories = []
+            break
+        case /^all$/.test(collapsedItems) || collapsedItems === null && /^all$/.test(renderCollapsed):
+            categories = [...possibleFilters]
+            break
+        default:
+            categories = collapsedItems?.split(',').map((item) => item.toLowerCase()) || renderCollapsed
+            break
+        }
+    } else {
+        categories = []
+    }
+    return categories
+}
+
+const getSortDirection = () => JSON.parse(sessionStorage.getItem('sortAsc')) || false
+const setSortDirection = (ascending) => sessionStorage.setItem('sortAsc', ascending)
+
+const getCollapsedIds = () => JSON.parse(sessionStorage.getItem('collapsedIds')) || []
+const setCollapsedIds = (list) => sessionStorage.setItem('collapsedIds', JSON.stringify(list))
+
+module.exports = {
+    getVisible,
+    hideCategory,
+    showCategory,
+    getCollapsedIds,
+    setCollapsedIds,
+    getSort,
+    setSort,
+    getSortDirection,
+    setSortDirection,
+    getCollapsedCategory,
+    possibleFilters,
+}
+
+},{}]},{},[4]);
+    </script>
+  </footer>
+</html>

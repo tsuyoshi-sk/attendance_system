@@ -2,8 +2,19 @@ import Foundation
 
 // MARK: - API設定
 enum API {
-    static let BASE_URL = "http://localhost:8000"
+    /// FastAPI サーバー (ローカル環境では 8080 ポートで稼働)
+    static let BASE_URL = "http://localhost:8080"
     static let NFC_SCAN_RESULT_ENDPOINT = "/api/v1/nfc/scan-result"
+    
+    enum Endpoint {
+        static let login = "/api/v1/auth/login"
+        static let punch = "/api/v1/punch"
+        static let dailyReport = "/api/v1/reports/daily"
+        
+        /// 既存PWA → ネイティブ連携用 (NFC スキャン結果送信)
+        static let nfcScanResult = "/api/v1/nfc/scan-result"
+    }
+    
     static let TIMEOUT_INTERVAL: TimeInterval = 30.0
     static let MAX_RETRY_COUNT = 3
 }

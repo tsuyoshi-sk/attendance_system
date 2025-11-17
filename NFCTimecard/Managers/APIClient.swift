@@ -12,6 +12,7 @@ class APIClient: ObservableObject {
     // MARK: - Private Properties
     private let session: URLSession
     private var cancellables = Set<AnyCancellable>()
+    private let sessionManager = SessionManager.shared
     
     // MARK: - Singleton
     static let shared = APIClient()
@@ -59,7 +60,7 @@ class APIClient: ObservableObject {
             }
             
             // リクエスト実行
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await perform(request, requiresAuth: true)
             
             // レスポンス処理
             await handleResponse(data: data, response: response, scanResult: scanResult, retryCount: retryCount)
@@ -162,28 +163,47 @@ class APIClient: ObservableObject {
             userInfo: ["error": error]
         )
     }
+    
+    /// 共通リクエスト
+    func perform(_ request: URLRequest, requiresAuth: Bool) async throws -> (Data, URLResponse) {
+        var mutableRequest = request
+        if requiresAuth, let token = sessionManager.accessToken {
+            mutableRequest.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return try await session.data(for: mutableRequest)
+    }
+    
+    /// 打刻API
+    func postPunch(cardIdm: String, punchType: String) async throws {
+        guard let url = URL(string: "\(API.BASE_URL)\(API.Endpoint.punch)") else {
+            throw NFCError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let payload: [String: Any] = [
+            "card_idm": cardIdm,
+            "punch_type": punchType
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        
+        let (data, response) = try await perform(request, requiresAuth: true)
+        guard let httpResponse = response as? HTTPURLResponse,
+              200..<300 ~= httpResponse.statusCode else {
+            let message = String(data: data, encoding: .utf8)
+            throw NFCError.apiError(statusCode: (response as? HTTPURLResponse)?.statusCode ?? -1, message: message)
+        }
+    }
 }
 
 // MARK: - API Response Models
-struct APIErrorResponse: Codable {
+struct APIErrorResponse: Decodable {
     let error: APIError
 }
 
-struct APIError: Codable {
+struct APIError: Decodable {
     let message: String
     let statusCode: Int
-    let details: [String: Any]?
-    
-    enum CodingKeys: String, CodingKey {
-        case message
-        case statusCode = "status_code"
-        case details
-    }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        message = try container.decode(String.self, forKey: .message)
-        statusCode = try container.decode(Int.self, forKey: .statusCode)
-        details = try? container.decode([String: Any].self, forKey: .details)
-    }
 }

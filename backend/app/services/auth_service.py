@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 import logging
+import uuid
 
 from backend.app.models import User, Employee, UserRole
 from backend.app.schemas.auth import UserLogin, PasswordChange, TokenPayload
@@ -156,16 +157,16 @@ class AuthService:
     def create_access_token(self, user: User) -> str:
         """
         アクセストークンを生成
-        
+
         Args:
             user: ユーザー情報
-            
+
         Returns:
             str: JWTトークン
         """
         # トークンの有効期限
         expire = datetime.utcnow() + timedelta(minutes=config.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
-        
+
         # トークンペイロード
         payload = {
             "sub": str(user.id),
@@ -173,9 +174,10 @@ class AuthService:
             "role": user.role.value,
             "exp": expire,
             "iat": datetime.utcnow(),
+            "jti": str(uuid.uuid4()),  # セッション固定攻撃対策: ユニークなトークンID
             "permissions": user.get_permissions()
         }
-        
+
         # トークンを生成
         token = jwt.encode(payload, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
         return token

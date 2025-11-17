@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "NFCTimecard",
     platforms: [
-        .iOS(.v14)
+        .iOS(.v15)
     ],
     products: [
         .library(
@@ -29,9 +29,6 @@ let package = Package(
                 "Models",
                 "Utils"
             ],
-            resources: [
-                .process("App/Info.plist")
-            ]
         ),
         .testTarget(
             name: "NFCTimecardTests",

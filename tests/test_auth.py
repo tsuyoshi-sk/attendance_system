@@ -3,71 +3,13 @@
 """
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from backend.app.main import app
-from backend.app.database import get_db, Base
-from backend.app.models import User, UserRole
-
-
-# テスト用データベース設定
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture
-def test_db():
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def client(test_db):
-    with TestClient(app) as c:
-        yield c
-
-
-@pytest.fixture
-def test_admin_user(test_db):
-    """テスト用管理者ユーザーを作成"""
-    db = TestingSessionLocal()
-    user = User(
-        username="test_admin",
-        password_hash="$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # password: test
-        role=UserRole.ADMIN,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    db.close()
-    return user
+# conftest.pyのfixtureを使用するため、ここでは定義不要
 
 
 def test_login_success(client, test_admin_user):
     """正常ログインテスト"""
     response = client.post(
-        "/api/v1/auth/login", data={"username": "test_admin", "password": "test"}
+        "/api/v1/auth/login", data={"username": "test_admin", "password": "test123"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -98,7 +40,7 @@ def test_get_current_user(client, test_admin_user):
     """現在のユーザー情報取得テスト"""
     # ログイン
     login_response = client.post(
-        "/api/v1/auth/login", data={"username": "test_admin", "password": "test"}
+        "/api/v1/auth/login", data={"username": "test_admin", "password": "test123"}
     )
     token = login_response.json()["access_token"]
 
@@ -130,7 +72,7 @@ def test_token_verification(client, test_admin_user):
     """トークン検証テスト"""
     # ログイン
     login_response = client.post(
-        "/api/v1/auth/login", data={"username": "test_admin", "password": "test"}
+        "/api/v1/auth/login", data={"username": "test_admin", "password": "test123"}
     )
     token = login_response.json()["access_token"]
 

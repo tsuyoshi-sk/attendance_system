@@ -6,7 +6,7 @@
 
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
@@ -17,6 +17,7 @@ from backend.app.models import Employee, PunchRecord, PunchType
 from backend.app.services.punch_service import PunchService, PunchServiceError
 from backend.app.schemas.punch import PunchCreate
 from backend.app.utils import offline_queue_manager
+from backend.app.utils.security import CryptoUtils
 from backend.app.security.ratelimit import limiter
 
 ERROR_STATUS_MAP = {
@@ -30,6 +31,22 @@ ERROR_STATUS_MAP = {
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _prepare_card_identifiers(
+    card_idm: Optional[str],
+    card_idm_hash: Optional[str],
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    カード識別子を正規化し、必要に応じてハッシュを導出
+    """
+    normalized_idm = card_idm.lower() if card_idm else None
+    normalized_hash = card_idm_hash.lower() if card_idm_hash else None
+
+    if normalized_idm and not normalized_hash and len(normalized_idm) in (16, 32):
+        normalized_hash = CryptoUtils.hash_idm(normalized_idm)
+
+    return normalized_idm, normalized_hash
 
 
 @router.get("/health")
@@ -61,15 +78,19 @@ async def create_punch(
     """
     try:
         service = PunchService(db)
+        card_idm, card_idm_hash = _prepare_card_identifiers(
+            payload.card_idm,
+            payload.card_idm_hash,
+        )
 
         # 同期サービスメソッドを非同期コンテキストで実行
         result = await run_in_threadpool(
             service.create_punch,
-            card_idm=payload.card_idm,
+            card_idm=card_idm,
             punch_type=PunchType(payload.punch_type.value),
             device_type=payload.device_type or "pasori",
             note=payload.note,
-            card_idm_hash=payload.card_idm_hash,
+            card_idm_hash=card_idm_hash,
             timestamp=payload.timestamp
         )
         return result
@@ -81,7 +102,7 @@ async def create_punch(
             content={
                 "error": {
                     "error": e.code,
-                    "message": "打刻処理でエラーが発生しました。入力内容を確認してください。"
+                    "message": str(e) or "打刻処理でエラーが発生しました。入力内容を確認してください。"
                 }
             }
         )
@@ -91,7 +112,7 @@ async def create_punch(
         offline_queue_manager.add_punch({
             "employee_id": None,
             "punch_type": payload.punch_type.value,
-            "card_idm": payload.card_idm or payload.card_idm_hash,
+            "card_idm": card_idm or card_idm_hash,
             "timestamp": punch_time.isoformat(),
             "device_type": payload.device_type or "pasori",
             "note": payload.note,

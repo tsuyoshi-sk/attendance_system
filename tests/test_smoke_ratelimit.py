@@ -6,6 +6,7 @@
 """
 
 import hashlib
+import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -123,6 +124,10 @@ def test_auth_401_invalid_credentials(client, test_admin_user):
     assert response.status_code == 401
 
 
+@pytest.mark.skipif(
+    os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "false",
+    reason="レート制限が無効化されているためスキップ"
+)
 def test_punch_ratelimit_429(client, test_employee):
     """Punch: レート制限（10/minute）が正しく動作し429を返すこと"""
     card_idm = test_employee["card_idm"]

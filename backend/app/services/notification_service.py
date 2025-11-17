@@ -23,6 +23,7 @@ class NotificationService:
         self.slack_webhook_url = config.SLACK_WEBHOOK_URL if hasattr(config, 'SLACK_WEBHOOK_URL') else None
         self.admin_channel = "#attendance-admin"
         self.alert_channel = "#attendance-alerts"
+        self.realtime_channel = "#attendance-realtime"
     
     async def send_slack_notification(
         self,
@@ -314,14 +315,13 @@ class NotificationService:
             }
         ]
         
-        # リアルタイム通知は別チャンネルに送信することも可能
-        # await self.send_slack_notification(
-        #     channel="#attendance-realtime",
-        #     title="打刻通知",
-        #     message=message,
-        #     color="good",
-        #     fields=fields
-        # )
+        await self.send_slack_notification(
+            channel=self.realtime_channel,
+            title="打刻通知",
+            message=message,
+            color="good",
+            fields=fields
+        )
     
     async def send_batch_error_notification(
         self,

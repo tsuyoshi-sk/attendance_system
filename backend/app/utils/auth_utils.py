@@ -5,7 +5,8 @@
 """
 
 import os
-from typing import Dict, Any, Optional
+import inspect
+from typing import Dict, Any, Optional, Iterable
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -84,21 +85,28 @@ def require_permission_or_bypass(permission: str):
         if os.getenv("BYPASS_AUTH", "false").lower() == "true":
             # バイパスモードでは全権限を持つ
             return current_user
-            
-        # 通常の権限チェック
-        if hasattr(await current_user, 'get_permissions'):
-            if permission not in await current_user.get_permissions():
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"権限 '{permission}' が必要です"
-                )
-        elif 'permissions' in (await current_user):
-            if permission not in await current_user['permissions']:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"権限 '{permission}' が必要です"
-                )
         
-        return current_user
+        user_obj = current_user
+        if inspect.isawaitable(user_obj):
+            user_obj = await user_obj
+        
+        permissions: Iterable[str] = []
+        if hasattr(user_obj, "get_permissions"):
+            perms = user_obj.get_permissions()
+            if inspect.isawaitable(perms):
+                perms = await perms
+            permissions = perms
+        elif isinstance(user_obj, dict):
+            permissions = user_obj.get("permissions", [])
+        elif hasattr(user_obj, "permissions"):
+            permissions = getattr(user_obj, "permissions", [])
+        
+        if permission not in permissions:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"権限 '{permission}' が必要です"
+            )
+        
+        return user_obj
     
     return permission_checker

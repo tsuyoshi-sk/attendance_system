@@ -3,77 +3,7 @@
 """
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from backend.app.main import app
-from backend.app.database import get_db, Base
-from backend.app.models import User, UserRole, Employee, WageType
-
-
-# テスト用データベース設定
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_employee.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture
-def test_db():
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
-
-
-@pytest.fixture
-def test_admin_user(test_db):
-    """テスト用管理者ユーザーを作成"""
-    from backend.app.services.auth_service import AuthService
-
-    db = TestingSessionLocal()
-    auth_service = AuthService(db)
-    user = User(
-        username="test_admin",
-        password_hash=auth_service.get_password_hash("test123"),
-        role=UserRole.ADMIN,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    db.close()
-    return user
-
-
-@pytest.fixture
-def auth_headers(client, test_admin_user):
-    """認証ヘッダーを取得"""
-    response = client.post(
-        "/api/v1/auth/login", data={"username": "test_admin", "password": "test123"}
-    )
-    token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+# conftest.pyのfixtureを使用するため、ここでは定義不要
 
 
 def test_create_employee(client, auth_headers):
@@ -82,7 +12,7 @@ def test_create_employee(client, auth_headers):
         "employee_code": "EMP001",
         "name": "田中太郎",
         "email": "tanaka@example.com",
-        "department": "開発部",
+        # "department": "開発部",  # TODO: Department処理の実装後に有効化
         "position": "エンジニア",
         "employment_type": "正社員",
         "hire_date": "2024-01-15",

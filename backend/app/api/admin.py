@@ -22,6 +22,7 @@ from backend.app.services.employee_service import EmployeeService
 from backend.app.api.auth import require_permission, get_current_active_user
 from backend.app.models import User
 #from backend.app.utils.auth_utils import get_current_user_or_bypass, require_permission_or_bypass
+from backend.app.utils.security import InputSanitizer, SecurityError
 from config.config import config
 
 logger = logging.getLogger(__name__)
@@ -125,22 +126,39 @@ async def create_employee(
 ) -> EmployeeResponse:
     """
     従業員を新規作成
-    
+
     新しい従業員を作成します。従業員コードとメールアドレスは一意である必要があります。
     """
+    # XSS対策: 入力値のサニタイズ
+    try:
+        if employee_data.name:
+            employee_data.name = InputSanitizer.sanitize_string(employee_data.name)
+        if employee_data.email:
+            employee_data.email = InputSanitizer.sanitize_string(employee_data.email, max_length=255)
+        if employee_data.position:
+            employee_data.position = InputSanitizer.sanitize_string(employee_data.position)
+        if employee_data.employment_type:
+            employee_data.employment_type = InputSanitizer.sanitize_string(employee_data.employment_type)
+    except SecurityError as e:
+        logger.warning(f"セキュリティエラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"入力値に不正な文字列が含まれています"
+        )
+
     try:
         service = EmployeeService(db)
         employee = await run_in_threadpool(
             service.create_employee,
             employee_data
         )
-        
+
         emp_dict = employee.to_dict()
         emp_dict['card_count'] = 0
         emp_dict['has_user_account'] = False
-        
+
         return EmployeeResponse(**emp_dict)
-        
+
     except ValueError as exc:
         logger.warning("従業員作成バリデーションエラー: %s", exc)
         raise HTTPException(

@@ -13,6 +13,7 @@ from ...models.employee import Employee
 from ...models.department import Department
 #from ...auth.dependencies import require_admin, require_manager, get_current_user
 from ...schemas.employee import EmployeeCreate, EmployeeUpdate, EmployeeResponse
+from ...utils.security import InputSanitizer, SecurityError
 
 router = APIRouter()
 
@@ -105,19 +106,37 @@ async def create_employee(
         department = db.query(Department).filter(
             Department.id == employee_data.department_id
         ).first()
-        
+
         if not department:
             raise HTTPException(
                 status_code=400,
                 detail="指定された部署が見つかりません"
             )
-    
+
+    # 入力値のサニタイズ（XSS対策）
+    employee_dict = employee_data.dict()
+    try:
+        # 文字列フィールドをサニタイズ
+        if "name" in employee_dict and employee_dict["name"]:
+            employee_dict["name"] = InputSanitizer.sanitize_string(employee_dict["name"])
+        if "email" in employee_dict and employee_dict["email"]:
+            employee_dict["email"] = InputSanitizer.sanitize_string(employee_dict["email"], max_length=255)
+        if "position" in employee_dict and employee_dict["position"]:
+            employee_dict["position"] = InputSanitizer.sanitize_string(employee_dict["position"])
+        if "employment_type" in employee_dict and employee_dict["employment_type"]:
+            employee_dict["employment_type"] = InputSanitizer.sanitize_string(employee_dict["employment_type"])
+    except SecurityError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"入力値に不正な文字列が含まれています: {str(e)}"
+        )
+
     # 従業員作成
-    employee = Employee(**employee_data.dict())
+    employee = Employee(**employee_dict)
     db.add(employee)
     db.commit()
     db.refresh(employee)
-    
+
     return EmployeeResponse.from_orm(employee)
 
 
@@ -171,17 +190,28 @@ async def create_department(
             status_code=400,
             detail="この部署コードは既に使用されています"
         )
-    
+
+    # 入力値のサニタイズ（XSS対策）
+    try:
+        sanitized_name = InputSanitizer.sanitize_string(name)
+        sanitized_code = InputSanitizer.sanitize_string(code, max_length=50)
+        sanitized_description = InputSanitizer.sanitize_string(description) if description else None
+    except SecurityError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"入力値に不正な文字列が含まれています: {str(e)}"
+        )
+
     department = Department(
-        name=name,
-        code=code,
-        description=description
+        name=sanitized_name,
+        code=sanitized_code,
+        description=sanitized_description
     )
-    
+
     db.add(department)
     db.commit()
     db.refresh(department)
-    
+
     return department.to_dict()
 
 

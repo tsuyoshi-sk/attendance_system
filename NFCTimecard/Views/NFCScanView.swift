@@ -1,5 +1,6 @@
 import SwiftUI
 
+@available(iOS 15.0, *)
 struct NFCScanView: View {
     // MARK: - Environment & State
     @EnvironmentObject var nfcManager: NFCManager
@@ -55,16 +56,19 @@ struct NFCScanView: View {
         .onAppear {
             startAnimation()
         }
-        .onChange(of: nfcManager.lastError) { error in
-            if error != nil {
+        .onReceive(nfcManager.$lastError) { error in
+            // error が nil じゃない時だけ閉じる
+            guard error != nil else { return }
                 // エラー時は自動的に閉じる
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     dismiss()
                 }
             }
-        }
-        .onChange(of: nfcManager.lastScanResult) { result in
-            if result?.success == true {
+        
+        .onReceive(nfcManager.$lastScanResult) { result in
+            guard let result = result, result.success else { return }
+
+            if result.success == true {
                 // 成功時は自動的に閉じる
                 dismiss()
             }

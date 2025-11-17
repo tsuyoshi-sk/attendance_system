@@ -7,6 +7,7 @@ struct ContentView: View {
     @StateObject private var nfcManager = NFCManager.shared
     @StateObject private var apiClient = APIClient.shared
     
+    @State private var selectedTab: Int = 0
     @State private var showingNFCScan = false
     @State private var showingSuccess = false
     @State private var successMessage = ""
@@ -14,65 +15,86 @@ struct ContentView: View {
     
     // MARK: - Body
     var body: some View {
-        NavigationView {
-            ZStack {
-                // 背景グラデーション
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.appPrimary.opacity(0.1), Color.appSecondary.opacity(0.1)]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+        TabView(selection: $selectedTab) {
+            NavigationView {
+                contentBody
+            }
+            .tabItem {
+                Label("打刻", systemImage: "wave.3.forward")
+            }
+            .tag(0)
+            
+            TodayStatusView()
+                .tabItem {
+                    Label("今日のステータス", systemImage: "calendar")
+                }
+                .tag(1)
+        }
+    }
+    
+    // メインコンテンツ
+    private var contentBody: some View {
+        ZStack {
+            // 背景グラデーション
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.appPrimary.opacity(0.1),
+                    Color.appSecondary.opacity(0.1)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 30) {
+                // ヘッダー
+                headerView
                 
-                VStack(spacing: 30) {
-                    // ヘッダー
-                    headerView
-                    
-                    Spacer()
-                    
-                    // メインコンテンツ
-                    if urlSchemeHandler.isProcessing || nfcManager.isReading {
-                        nfcReadingView
-                    } else if showingSuccess {
-                        successView
-                    } else {
-                        waitingView
-                    }
-                    
-                    Spacer()
-                    
-                    // デバッグボタン（開発時のみ）
-                    #if DEBUG
-                    debugSection
-                    #endif
+                Spacer()
+                
+                // メインコンテンツ
+                if urlSchemeHandler.isProcessing || nfcManager.isReading {
+                    nfcReadingView
+                } else if showingSuccess {
+                    successView
+                } else {
+                    waitingView
                 }
-                .standardPadding()
+                
+                Spacer()
+                
+                // デバッグボタン（開発時のみ）
+                #if DEBUG
+                debugSection
+                #endif
             }
-            .navigationBarHidden(true)
-            .errorAlert(error: Binding(
-                get: { urlSchemeHandler.lastError ?? nfcManager.lastError },
-                set: { _ in
-                    urlSchemeHandler.lastError = nil
-                    nfcManager.lastError = nil
-                }
-            ))
-            .loadingOverlay(isLoading: apiClient.isLoading, message: "送信中...")
-            .onChange(of: urlSchemeHandler.shouldStartNFCReading) { shouldStart in
-                if shouldStart {
-                    showingNFCScan = true
-                    urlSchemeHandler.startNFCReading()
-                }
+            .standardPadding()
+        }
+        .navigationBarHidden(true)
+        .errorAlert(error: Binding(
+            get: { urlSchemeHandler.lastError ?? nfcManager.lastError },
+            set: { _ in
+                urlSchemeHandler.lastError = nil
+                nfcManager.lastError = nil
             }
-            .onChange(of: nfcManager.lastScanResult) { result in
-                if let result = result, result.success {
-                    handleSuccessfulScan(result)
-                }
+        ))
+        .loadingOverlay(isLoading: apiClient.isLoading, message: "送信中...")
+        .onChange(of: urlSchemeHandler.shouldStartNFCReading) { shouldStart in
+            if shouldStart {
+                showingNFCScan = true
+                urlSchemeHandler.startNFCReading()
             }
-            .fullScreenCover(isPresented: $showingNFCScan) {
-                NFCScanView()
-                    .environmentObject(nfcManager)
-                    .environmentObject(urlSchemeHandler)
+        }
+        // ← ここを onReceive にして Equatable 問題を回避
+        .onReceive(nfcManager.$lastScanResult) { result in
+            if let result = result, result.success {
+                handleSuccessfulScan(result)
             }
+        }
+        .fullScreenCover(isPresented: $showingNFCScan) {
+            NFCScanView()
+                .environmentObject(nfcManager)
+                .environmentObject(urlSchemeHandler)
         }
     }
     
@@ -163,7 +185,7 @@ struct ContentView: View {
                 .foregroundColor(.appSuccess)
                 .transition(.scale.combined(with: .opacity))
             
-            Text("読み取り成功！")
+            Text("打刻成功！")
                 .font(.title)
                 .fontWeight(.bold)
             
@@ -259,6 +281,8 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
             .environmentObject(URLSchemeHandler())
+            .environmentObject(NFCManager.shared)
+            .environmentObject(APIClient.shared)
             .previewDevice("iPhone 13")
     }
 }

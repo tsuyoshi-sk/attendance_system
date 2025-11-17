@@ -5,7 +5,7 @@
 """
 
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -15,6 +15,7 @@ from backend.app.database import get_db
 from backend.app.models import User, UserRole
 from backend.app.schemas.auth import UserLogin, UserResponse, TokenResponse, PasswordChange
 from backend.app.services.auth_service import AuthService
+from backend.app.security.ratelimit import limiter
 from config.config import config
 
 logger = logging.getLogger(__name__)
@@ -121,14 +122,17 @@ def require_permission(permission: str):
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute")  # ブルートフォース対策: 1分間に5回まで
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ) -> TokenResponse:
     """
     ユーザーログイン
-    
+
     ユーザー名とパスワードで認証し、アクセストークンを発行します。
+    レート制限: 1分間に5回まで（ブルートフォース攻撃対策）
     """
     service = AuthService(db)
     
@@ -170,14 +174,17 @@ async def login(
 
 
 @router.post("/login/form", response_model=TokenResponse)
+@limiter.limit("5/minute")  # ブルートフォース対策: 1分間に5回まで
 async def login_form(
+    request: Request,
     login_data: UserLogin,
     db: Session = Depends(get_db)
 ) -> TokenResponse:
     """
     ユーザーログイン（JSONフォーム版）
-    
+
     JSONフォーマットでユーザー名とパスワードを受け取り、認証します。
+    レート制限: 1分間に5回まで（ブルートフォース攻撃対策）
     """
     service = AuthService(db)
     

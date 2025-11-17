@@ -33,7 +33,6 @@ class InputSanitizer:
         r"(--|#|\/\*|\*\/)",
         r"(\bor\b\s*\d+\s*=\s*\d+)",
         r"(\band\b\s*\d+\s*=\s*\d+)",
-        r"(\'|\"|;|\\)"
     ]
     
     # XSS対策用のパターン
@@ -130,13 +129,14 @@ class RateLimiter:
     def __init__(self):
         self._attempts = {}  # {key: [(timestamp, count)]}
         self._blocked_until = {}  # {key: timestamp}
+        self._block_durations = {}  # {key: seconds}
     
     def check_rate_limit(
         self,
         key: str,
         max_attempts: int = 10,
         window_seconds: int = 60,
-        block_duration_seconds: int = 300
+        block_duration_seconds: Optional[int] = None
     ) -> bool:
         """
         レート制限をチェック
@@ -151,6 +151,14 @@ class RateLimiter:
             bool: アクセス可能な場合True
         """
         now = datetime.now()
+        if block_duration_seconds is not None:
+            effective_block_duration = block_duration_seconds
+            if block_duration_seconds > 0:
+                self._block_durations[key] = block_duration_seconds
+            else:
+                self._block_durations.pop(key, None)
+        else:
+            effective_block_duration = self._block_durations.get(key, 0)
         
         # ブロック中かチェック
         if key in self._blocked_until:
@@ -164,6 +172,8 @@ class RateLimiter:
             else:
                 # ブロック期間終了
                 del self._blocked_until[key]
+                if key in self._attempts:
+                    del self._attempts[key]
         
         # 試行履歴を取得
         if key not in self._attempts:
@@ -181,7 +191,9 @@ class RateLimiter:
         
         if current_attempts >= max_attempts:
             # レート制限に達した
-            self._blocked_until[key] = now + timedelta(seconds=block_duration_seconds)
+            if effective_block_duration > 0:
+                self._blocked_until[key] = now + timedelta(seconds=effective_block_duration)
+                self._attempts.pop(key, None)
             log_security_event(
                 "RATE_LIMIT_EXCEEDED",
                 details=f"Key: {key}, Attempts: {current_attempts}"

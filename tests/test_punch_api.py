@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.app.main import app
 from backend.app.database import Base, get_db
 from backend.app.models import Employee, PunchRecord, PunchType
+from backend.app.utils.security import CryptoUtils
 from config.config import config
 
 
@@ -35,14 +36,14 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
-
 @pytest.fixture(scope="module")
 def client():
     """テストクライアント"""
     Base.metadata.create_all(bind=engine)
-    yield TestClient(app)
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.pop(get_db, None)
     Base.metadata.drop_all(bind=engine)
 
 
@@ -52,10 +53,8 @@ def test_employee():
     db = TestingSessionLocal()
 
     # IDmハッシュ化
-    test_idm = "0123456789ABCDEF"
-    idm_hash = hashlib.sha256(
-        f"{test_idm}{config.IDM_HASH_SECRET}".encode()
-    ).hexdigest()
+    test_idm = "0123456789ABCDEF".lower()
+    idm_hash = CryptoUtils.hash_idm(test_idm)
 
     employee = Employee(
         employee_code="TEST001",
@@ -68,6 +67,7 @@ def test_employee():
     db.add(employee)
     db.commit()
     db.refresh(employee)
+    employee.card_idm_raw = test_idm
 
     yield employee
 
@@ -83,14 +83,13 @@ class TestPunchAPI:
 
     def test_create_punch_success(self, client, test_employee):
         """正常な打刻のテスト"""
-        # ハッシュ化されたIDmを使用
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
 
         response = client.post(
             "/api/v1/punch/",
             json={
                 "punch_type": "IN",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": datetime.now().isoformat(),
             },
         )
@@ -103,7 +102,7 @@ class TestPunchAPI:
 
     def test_punch_types(self, client, test_employee):
         """全ての打刻タイプのテスト"""
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
 
         # IN -> OUTSIDE -> RETURN -> OUT の順序でテスト
         punch_sequence = [
@@ -121,7 +120,7 @@ class TestPunchAPI:
                 "/api/v1/punch/",
                 json={
                     "punch_type": punch_type,
-                    "card_idm": idm_hash,
+                    "card_idm": card_idm,
                     "timestamp": timestamp.isoformat(),
                 },
             )
@@ -132,13 +131,13 @@ class TestPunchAPI:
 
     def test_invalid_employee(self, client):
         """未登録カードのテスト"""
-        invalid_hash = hashlib.sha256("INVALID".encode()).hexdigest()
+        invalid_card_idm = "ffffffffffffffff"
 
         response = client.post(
             "/api/v1/punch/",
             json={
                 "punch_type": "IN",
-                "card_idm": invalid_hash,
+                "card_idm": invalid_card_idm,
                 "timestamp": datetime.now().isoformat(),
             },
         )
@@ -149,7 +148,7 @@ class TestPunchAPI:
 
     def test_duplicate_punch(self, client, test_employee):
         """重複打刻のテスト（3分以内）"""
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
         timestamp = datetime.now()
 
         # 1回目の打刻
@@ -157,7 +156,7 @@ class TestPunchAPI:
             "/api/v1/punch/",
             json={
                 "punch_type": "IN",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": timestamp.isoformat(),
             },
         )
@@ -168,7 +167,7 @@ class TestPunchAPI:
             "/api/v1/punch/",
             json={
                 "punch_type": "IN",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": (timestamp + timedelta(minutes=2)).isoformat(),
             },
         )
@@ -179,7 +178,7 @@ class TestPunchAPI:
 
     def test_daily_limit(self, client, test_employee):
         """日次制限のテスト"""
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
         base_time = datetime.now()
 
         # IN打刻
@@ -187,7 +186,7 @@ class TestPunchAPI:
             "/api/v1/punch/",
             json={
                 "punch_type": "IN",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": base_time.isoformat(),
             },
         )
@@ -199,7 +198,7 @@ class TestPunchAPI:
                 "/api/v1/punch/",
                 json={
                     "punch_type": "OUTSIDE",
-                    "card_idm": idm_hash,
+                    "card_idm": card_idm,
                     "timestamp": (
                         base_time + timedelta(hours=i + 1, minutes=30)
                     ).isoformat(),
@@ -211,7 +210,7 @@ class TestPunchAPI:
                 "/api/v1/punch/",
                 json={
                     "punch_type": "RETURN",
-                    "card_idm": idm_hash,
+                    "card_idm": card_idm,
                     "timestamp": (base_time + timedelta(hours=i + 2)).isoformat(),
                 },
             )
@@ -221,7 +220,7 @@ class TestPunchAPI:
             "/api/v1/punch/",
             json={
                 "punch_type": "OUTSIDE",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": (base_time + timedelta(hours=7)).isoformat(),
             },
         )
@@ -232,14 +231,14 @@ class TestPunchAPI:
 
     def test_invalid_punch_sequence(self, client, test_employee):
         """不正な打刻順序のテスト"""
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
 
         # 出勤なしで退勤
         response = client.post(
             "/api/v1/punch/",
             json={
                 "punch_type": "OUT",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": datetime.now().isoformat(),
             },
         )
@@ -278,14 +277,14 @@ class TestPunchAPI:
         """パフォーマンステスト（3秒以内）"""
         import time
 
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
 
         start_time = time.time()
         response = client.post(
             "/api/v1/punch/",
             json={
                 "punch_type": "IN",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": datetime.now().isoformat(),
             },
         )
@@ -297,14 +296,14 @@ class TestPunchAPI:
 
     def test_get_punch_status(self, client, test_employee):
         """打刻状況取得のテスト"""
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
 
         # 打刻実行
         client.post(
             "/api/v1/punch/",
             json={
                 "punch_type": "IN",
-                "card_idm": idm_hash,
+                "card_idm": card_idm,
                 "timestamp": datetime.now().isoformat(),
             },
         )
@@ -320,7 +319,7 @@ class TestPunchAPI:
 
     def test_get_punch_history(self, client, test_employee):
         """打刻履歴取得のテスト"""
-        idm_hash = test_employee.card_idm_hash
+        card_idm = test_employee.card_idm_raw
 
         # 複数の打刻を作成
         base_time = datetime.now()
@@ -329,7 +328,7 @@ class TestPunchAPI:
                 "/api/v1/punch/",
                 json={
                     "punch_type": "IN" if i == 0 else "OUT",
-                    "card_idm": idm_hash,
+                    "card_idm": card_idm,
                     "timestamp": (base_time + timedelta(hours=i)).isoformat(),
                 },
             )

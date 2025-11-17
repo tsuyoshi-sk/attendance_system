@@ -106,11 +106,11 @@ class NFCManager: NSObject, ObservableObject {
     /// Suica IDm の抽出とフォーマット
     private func extractSuicaIDm(from tag: NFCFeliCaTag) async throws -> String {
         // Polling
-        let (_, idm, _) = try await tag.polling(
-            systemCode: Data([0x00, 0x03]),
-            requestCode: .systemCode,
-            timeSlot: .max1
-        )
+        let (idm, _) = try await tag.polling(
+                systemCode: Data([0x00, 0x03]),
+                requestCode: .systemCode,
+                timeSlot: .max1
+            )
         
         // IDmを16進数文字列に変換
         let idmHex = idm.map { String(format: "%02x", $0) }.joined()
@@ -210,8 +210,17 @@ extension NFCManager: NFCTagReaderSessionDelegate {
             success: true
         )
         
-        // APIに送信
+        // 既存PWA連携への送信
         await apiClient.sendScanResult(scanResult)
+        
+        // FastAPI への打刻
+        do {
+            try await apiClient.postPunch(cardIdm: cardId, punchType: "in")
+        } catch {
+            await MainActor.run {
+                self.lastError = error as? NFCError ?? .networkError(underlying: error)
+            }
+        }
         
         // UIを更新
         await MainActor.run {

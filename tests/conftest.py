@@ -3,6 +3,7 @@
 """
 
 import asyncio
+import os
 from contextlib import contextmanager
 
 import pytest
@@ -12,6 +13,10 @@ from sqlalchemy.pool import StaticPool
 
 from backend.app.database import Base
 from backend.app.models import *  # すべてのモデルをインポート
+
+# テスト環境の設定
+os.environ["TESTING"] = "true"
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 
 class TestDatabase:
@@ -77,3 +82,59 @@ def db_session(test_db):
     """テスト用DBセッション"""
     with test_db.session_scope() as session:
         yield session
+
+
+@pytest.fixture
+def client(test_db):
+    """共通のテストクライアント（dependency_overrides設定済み）"""
+    from fastapi.testclient import TestClient
+    from backend.app.main import app
+    from backend.app.database import get_db
+
+    def override_get_db():
+        db = test_db.SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as c:
+        yield c
+
+    # クリーンアップ
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def test_admin_user(test_db):
+    """共通の管理者ユーザー"""
+    from backend.app.services.auth_service import AuthService
+    from backend.app.models import User, UserRole
+
+    db = test_db.SessionLocal()
+    try:
+        auth_service = AuthService(db)
+        user = User(
+            username="test_admin",
+            password_hash=auth_service.get_password_hash("test123"),
+            role=UserRole.ADMIN,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    finally:
+        db.close()
+
+
+@pytest.fixture
+def auth_headers(client, test_admin_user):
+    """認証ヘッダー"""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={"username": "test_admin", "password": "test123"}
+    )
+    token = response.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
