@@ -1,13 +1,17 @@
 // ユーザー関連
 export interface User {
   id: number;
-  employee_id: string;
-  name: string;
-  email: string;
-  department?: string;
-  position?: string;
-  is_admin: boolean;
+  username: string;
+  role: string;
+  employee_id: number | null;
+  is_active: boolean;
+  last_login: string | null;
   created_at: string;
+  updated_at: string;
+  permissions: string[];
+  // 後方互換性のため
+  is_admin?: boolean;
+  name?: string;
 }
 
 // 打刻関連

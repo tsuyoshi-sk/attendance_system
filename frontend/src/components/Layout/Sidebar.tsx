@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   Clock,
@@ -7,30 +8,31 @@ import {
   LogOut,
   Users,
   Calendar,
+  Shield,
 } from 'lucide-react';
 
 interface SidebarProps {
-  currentPage: string;
-  onNavigate: (page: string) => void;
   onLogout: () => void;
   isAdmin?: boolean;
   userName?: string;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
-  currentPage,
-  onNavigate,
   onLogout,
   isAdmin = false,
   userName = 'ユーザー',
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const menuItems = [
-    { id: 'dashboard', label: 'ダッシュボード', icon: Home },
-    { id: 'attendance', label: '打刻履歴', icon: Clock },
-    { id: 'reports', label: 'レポート', icon: BarChart3 },
-    { id: 'calendar', label: 'カレンダー', icon: Calendar },
-    ...(isAdmin ? [{ id: 'admin', label: '管理者画面', icon: Users }] : []),
-    { id: 'settings', label: '設定', icon: Settings },
+    { id: 'dashboard', label: 'ダッシュボード', icon: Home, path: '/dashboard', adminOnly: false },
+    { id: 'attendance', label: '打刻履歴', icon: Clock, path: '/attendance', adminOnly: false },
+    { id: 'reports', label: 'レポート', icon: BarChart3, path: '/reports', adminOnly: false },
+    { id: 'employees', label: '従業員', icon: Users, path: '/employees', adminOnly: false },
+    { id: 'calendar', label: 'カレンダー', icon: Calendar, path: '/calendar', adminOnly: false },
+    { id: 'admin', label: '管理画面', icon: Shield, path: '/admin', adminOnly: true },
+    { id: 'settings', label: '設定', icon: Settings, path: '/settings', adminOnly: false },
   ];
 
   return (
@@ -58,21 +60,23 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* ナビゲーションメニュー */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.id;
+        {menuItems
+          .filter((item) => !item.adminOnly || isAdmin)
+          .map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`nav-item w-full ${isActive ? 'nav-item-active' : ''}`}
-            >
-              <Icon size={20} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(item.path)}
+                className={`nav-item w-full ${isActive ? 'nav-item-active' : ''}`}
+              >
+                <Icon size={20} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
       </nav>
 
       {/* ログアウトボタン */}

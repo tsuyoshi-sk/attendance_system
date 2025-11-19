@@ -219,7 +219,7 @@ const SettingsPage: React.FC = () => {
               <div>
                 <p className="font-medium text-slate-900">アカウントタイプ</p>
                 <p className="text-sm text-slate-500">
-                  {user?.is_admin ? '管理者' : '一般ユーザー'}
+                  {user?.role === 'admin' ? '管理者' : '一般ユーザー'}
                 </p>
               </div>
             </div>

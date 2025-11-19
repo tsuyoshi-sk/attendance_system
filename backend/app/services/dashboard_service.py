@@ -6,7 +6,7 @@ Dashboard Service
 import logging
 from datetime import datetime, date, time
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, Integer
 from sqlalchemy.orm import selectinload
 
 from backend.app.models import Employee, PunchRecord, DailySummary, Department, PunchType

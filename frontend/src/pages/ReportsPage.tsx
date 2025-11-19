@@ -1,43 +1,107 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, TrendingUp, Clock, BarChart3 } from 'lucide-react';
-import { format } from 'date-fns';
-import PageHeader from '../components/Layout/PageHeader';
-import apiClient from '../lib/api';
-import { MonthlyReport } from '../types';
+import { BarChart3, Calendar, Download, FileText } from 'lucide-react';
+import axios from 'axios';
 
-const ReportsPage: React.FC = () => {
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
-  const [monthlyReport, setMonthlyReport] = useState<MonthlyReport | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+interface MonthlyStats {
+  totalWorkDays: number;
+  totalWorkHours: number;
+  totalOvertimeHours: number;
+  lateDays: number;
+  earlyLeaveDays: number;
+}
+
+export const ReportsPage: React.FC = () => {
+  const [stats, setStats] = useState<MonthlyStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(
+    new Date().toISOString().slice(0, 7) // YYYY-MM format
+  );
 
   useEffect(() => {
     fetchMonthlyReport();
   }, [selectedMonth]);
 
   const fetchMonthlyReport = async () => {
-    setIsLoading(true);
     try {
-      const data = await apiClient.getMonthlyReport(selectedMonth);
-      setMonthlyReport(data);
-    } catch (error) {
-      console.error('Failed to fetch monthly report:', error);
+      setLoading(true);
+      setError(null);
+
+      // 月次レポートを取得（仮実装）
+      // 実際のAPIエンドポイントに合わせて調整が必要
+      const response = await axios.get(`/api/v1/reports/monthly/${selectedMonth}`);
+
+      setStats({
+        totalWorkDays: response.data.total_work_days || 0,
+        totalWorkHours: response.data.total_work_hours || 0,
+        totalOvertimeHours: response.data.total_overtime_hours || 0,
+        lateDays: response.data.late_days || 0,
+        earlyLeaveDays: response.data.early_leave_days || 0,
+      });
+    } catch (err: any) {
+      console.error('Failed to fetch monthly report:', err);
+      setError('レポートの取得に失敗しました');
+      setStats(null);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
+  const exportReport = () => {
+    // レポート出力機能（仮実装）
+    alert('レポート出力機能は開発中です');
+  };
+
+  const StatCard: React.FC<{
+    title: string;
+    value: string | number;
+    subtitle?: string;
+    icon: React.ReactNode;
+    colorClass: string;
+  }> = ({ title, value, subtitle, icon, colorClass }) => (
+    <div className="card">
+      <div className="card-content p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-600">{title}</p>
+            <p className={`text-3xl font-bold mt-2 ${colorClass}`}>{value}</p>
+            {subtitle && (
+              <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
+            )}
+          </div>
+          <div className={`p-3 rounded-lg ${colorClass} bg-opacity-10`}>
+            {icon}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div>
-      <PageHeader
-        title="レポート"
-        description="月次・日次の勤怠レポートを確認できます"
-      />
+    <div className="space-y-6">
+      {/* ヘッダー */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">レポート</h1>
+          <p className="text-sm text-slate-600 mt-1">
+            月次勤怠レポートを確認できます
+          </p>
+        </div>
+        <button
+          onClick={exportReport}
+          className="btn btn-secondary flex items-center gap-2"
+        >
+          <Download size={18} />
+          PDF出力
+        </button>
+      </div>
 
       {/* 月選択 */}
-      <div className="card mb-6">
+      <div className="card">
         <div className="card-content p-6">
           <div className="flex items-center gap-4">
-            <label className="label mb-0">対象月</label>
+            <Calendar className="text-slate-400" size={20} />
+            <label className="label">対象月</label>
             <input
               type="month"
               value={selectedMonth}
@@ -48,172 +112,70 @@ const ReportsPage: React.FC = () => {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-slate-600 mt-4">読み込み中...</p>
         </div>
-      ) : monthlyReport ? (
+      ) : error ? (
+        <div className="card">
+          <div className="card-content p-12 text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button onClick={fetchMonthlyReport} className="btn btn-primary">
+              再試行
+            </button>
+          </div>
+        </div>
+      ) : stats ? (
         <>
-          {/* サマリーカード */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="card">
-              <div className="card-content p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Calendar className="text-blue-600" size={20} />
-                  </div>
-                  <h3 className="text-sm font-medium text-slate-600">出勤日数</h3>
-                </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {monthlyReport.summary?.present_days || 0}
-                  <span className="text-lg font-normal text-slate-500 ml-1">日</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-content p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Clock className="text-green-600" size={20} />
-                  </div>
-                  <h3 className="text-sm font-medium text-slate-600">総勤務時間</h3>
-                </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {(monthlyReport.total_hours / 60).toFixed(1)}
-                  <span className="text-lg font-normal text-slate-500 ml-1">h</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-content p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <TrendingUp className="text-purple-600" size={20} />
-                  </div>
-                  <h3 className="text-sm font-medium text-slate-600">平均勤務時間</h3>
-                </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {monthlyReport.summary?.average_working_hours
-                    ? (monthlyReport.summary.average_working_hours / 60).toFixed(1)
-                    : '0.0'}
-                  <span className="text-lg font-normal text-slate-500 ml-1">h</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-content p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <BarChart3 className="text-orange-600" size={20} />
-                  </div>
-                  <h3 className="text-sm font-medium text-slate-600">残業時間</h3>
-                </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {(monthlyReport.total_overtime / 60).toFixed(1)}
-                  <span className="text-lg font-normal text-slate-500 ml-1">h</span>
-                </p>
-              </div>
-            </div>
+          {/* 統計カード */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title="勤務日数"
+              value={stats.totalWorkDays}
+              subtitle="日"
+              icon={<Calendar className="text-blue-600" size={24} />}
+              colorClass="text-blue-600"
+            />
+            <StatCard
+              title="総労働時間"
+              value={stats.totalWorkHours.toFixed(1)}
+              subtitle="時間"
+              icon={<BarChart3 className="text-green-600" size={24} />}
+              colorClass="text-green-600"
+            />
+            <StatCard
+              title="残業時間"
+              value={stats.totalOvertimeHours.toFixed(1)}
+              subtitle="時間"
+              icon={<FileText className="text-orange-600" size={24} />}
+              colorClass="text-orange-600"
+            />
+            <StatCard
+              title="遅刻/早退"
+              value={`${stats.lateDays} / ${stats.earlyLeaveDays}`}
+              subtitle="日"
+              icon={<FileText className="text-red-600" size={24} />}
+              colorClass="text-red-600"
+            />
           </div>
 
-          {/* 日別詳細 */}
+          {/* 詳細レポート */}
           <div className="card">
-            <div className="card-header">
-              <h2 className="text-lg font-semibold text-slate-900">日別詳細</h2>
-            </div>
-            <div className="card-content p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                        日付
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                        出勤
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                        退勤
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                        勤務時間
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                        休憩時間
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                        残業時間
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
-                        状態
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {monthlyReport.daily_reports.map((daily, index) => (
-                      <tr key={index} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                          {format(new Date(daily.date), 'M/d (E)')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                          {daily.punch_in_time
-                            ? format(new Date(daily.punch_in_time), 'HH:mm')
-                            : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                          {daily.punch_out_time
-                            ? format(new Date(daily.punch_out_time), 'HH:mm')
-                            : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                          {daily.working_hours ? `${(daily.working_hours / 60).toFixed(1)}h` : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                          {daily.break_time ? `${daily.break_time}分` : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                          {daily.overtime ? `${(daily.overtime / 60).toFixed(1)}h` : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`badge ${
-                              daily.status === 'working'
-                                ? 'badge-success'
-                                : daily.status === 'break'
-                                ? 'badge-warning'
-                                : 'badge-default'
-                            }`}
-                          >
-                            {daily.status === 'working'
-                              ? '勤務中'
-                              : daily.status === 'break'
-                              ? '休憩中'
-                              : daily.status === 'off'
-                              ? '退勤済み'
-                              : daily.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="card-content p-6">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <BarChart3 size={20} />
+                月次サマリー
+              </h2>
+              <div className="text-center py-12">
+                <p className="text-slate-600">
+                  詳細なレポート機能は開発中です
+                </p>
               </div>
             </div>
           </div>
         </>
-      ) : (
-        <div className="card">
-          <div className="card-content py-12 text-center text-slate-500">
-            <Calendar size={48} className="mx-auto mb-3 opacity-30" />
-            <p>レポートデータがありません</p>
-          </div>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };
-
-export default ReportsPage;

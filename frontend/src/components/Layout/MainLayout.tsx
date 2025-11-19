@@ -3,8 +3,6 @@ import Sidebar from './Sidebar';
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  currentPage: string;
-  onNavigate: (page: string) => void;
   onLogout: () => void;
   isAdmin?: boolean;
   userName?: string;
@@ -12,8 +10,6 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({
   children,
-  currentPage,
-  onNavigate,
   onLogout,
   isAdmin,
   userName,
@@ -21,8 +17,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   return (
     <div className="flex h-screen bg-slate-50">
       <Sidebar
-        currentPage={currentPage}
-        onNavigate={onNavigate}
         onLogout={onLogout}
         isAdmin={isAdmin}
         userName={userName}

@@ -5,6 +5,11 @@ import LoginPage from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EmployeesPage } from "./pages/EmployeesPage";
 import { EmployeeDetailPage } from "./pages/EmployeeDetailPage";
+import { AttendancePage } from "./pages/AttendancePage";
+import { ReportsPage } from "./pages/ReportsPage";
+import CalendarPage from "./pages/CalendarPage";
+import SettingsPage from "./pages/SettingsPage";
+import AdminPage from "./pages/AdminPage";
 import apiClient from "./lib/api";
 import { User } from "./types";
 
@@ -87,15 +92,21 @@ export default function App() {
             <ProtectedRoute isAuthenticated={isAuthenticated}>
               <MainLayout
                 onLogout={handleLogout}
-                isAdmin={currentUser?.is_admin || false}
-                userName={currentUser?.name || "ユーザー"}
+                isAdmin={currentUser?.role === "admin" || false}
+                userName={currentUser?.username || "ユーザー"}
               >
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/attendance" element={<AttendancePage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/employees" element={<EmployeesPage />} />
                   <Route path="/employees/:id" element={<EmployeeDetailPage />} />
-                  {/* TODO: Add other pages here */}
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  {currentUser?.role === "admin" && (
+                    <Route path="/admin" element={<AdminPage />} />
+                  )}
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </MainLayout>

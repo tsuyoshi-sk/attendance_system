@@ -50,43 +50,43 @@ async def get_current_user(
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM]
         )
-        
-        # ユーザー名（sub）を取得
-        username: str = payload.get("sub")
-        if username is None:
+
+        # ユーザーID（sub）を取得
+        user_id: str = payload.get("sub")
+        if user_id is None:
             logger.warning("JWT payload missing 'sub' field")
             raise credentials_exception
-            
+
         # トークン有効期限チェック
         from datetime import datetime
         exp = payload.get("exp")
         if exp and datetime.fromtimestamp(exp) < datetime.now():
-            logger.warning(f"JWT token expired for user: {username}")
+            logger.warning(f"JWT token expired for user ID: {user_id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="トークンの有効期限が切れています",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-            
+
     except JWTError as e:
         logger.warning(f"JWT decode error: {e}")
         raise credentials_exception
-    
-    # データベースからユーザーを取得
-    user = db.query(User).filter(User.username == username).first()
+
+    # データベースからユーザーを取得（IDで検索）
+    user = db.query(User).filter(User.id == int(user_id)).first()
     if user is None:
-        logger.warning(f"User not found in database: {username}")
+        logger.warning(f"User not found in database with ID: {user_id}")
         raise credentials_exception
     
     # ユーザーがアクティブかチェック
     if not user.is_active:
-        logger.warning(f"Inactive user attempted login: {username}")
+        logger.warning(f"Inactive user attempted login: {user.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="アカウントが無効化されています"
         )
-    
-    logger.info(f"User authenticated successfully: {username}")
+
+    logger.info(f"User authenticated successfully: {user.username}")
     return user
 
 
