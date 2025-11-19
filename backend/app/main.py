@@ -21,7 +21,9 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from config.config import config
 from backend.app.database import init_db, get_db
-from backend.app.api import punch, admin, auth, reports, analytics
+from backend.app.api import punch, admin, auth, reports, analytics, dashboard, employees, users
+
+# ログ設定
 from backend.app.health_check import get_integrated_health_status
 from backend.app.middleware.security_async import add_security_middleware
 from backend.app.security.ratelimit import limiter
@@ -307,6 +309,24 @@ app.include_router(
     analytics.router,
     prefix=f"{config.API_V1_PREFIX}/analytics",
     tags=["分析"]
+)
+
+app.include_router(
+    dashboard.router,
+    prefix=f"{config.API_V1_PREFIX}/dashboard",
+    tags=["ダッシュボード"]
+)
+
+app.include_router(
+    employees.router,
+    prefix=f"{config.API_V1_PREFIX}/employees",
+    tags=["従業員"]
+)
+
+app.include_router(
+    users.router,
+    prefix=f"{config.API_V1_PREFIX}/users",
+    tags=["ユーザー"]
 )
 
 

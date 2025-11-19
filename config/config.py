@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     
     # データベース設定
-    DATABASE_URL: str = "sqlite:///./attendance.db"
+    DATABASE_URL: str = "sqlite:///./data/attendance.db"
     DATABASE_ECHO: bool = False
     
     # セキュリティ設定
@@ -62,7 +62,13 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     
     # CORS設定
-    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:8000"]
+    CORS_ORIGINS: Union[List[str], str] = [
+        "http://localhost:3000", 
+        "http://localhost:8000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+    ]
     CORS_CREDENTIALS: bool = True
     SECURITY_HEADERS_ENABLED: bool = True
     

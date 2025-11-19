@@ -23,7 +23,7 @@ orjson==3.9.10
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 cryptography==41.0.7  # 高度な暗号化機能
-bcrypt==4.1.2  # パスワードハッシュ化
+bcrypt==3.2.0  # パスワードハッシュ化 (passlibとの互換性のためバージョン固定)
 python-multipart==0.0.6
 slowapi==0.1.9
 

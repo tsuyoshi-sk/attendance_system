@@ -14,6 +14,8 @@ import PageHeader from '../components/Layout/PageHeader';
 import apiClient from '../lib/api';
 import { PunchType, TodayStatus, PunchRecord } from '../types';
 
+const TEST_CARD_IDM = (import.meta.env.VITE_TEST_CARD_IDM as string | undefined)?.trim();
+
 const Dashboard: React.FC = () => {
   const [todayStatus, setTodayStatus] = useState<TodayStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,8 +44,11 @@ const Dashboard: React.FC = () => {
   const handlePunch = async (punchType: PunchType) => {
     setIsPunching(true);
     try {
+      const cardIdm = TEST_CARD_IDM && TEST_CARD_IDM.length > 0
+        ? TEST_CARD_IDM
+        : `WEB_${Date.now()}`;
       await apiClient.punch({
-        card_idm: 'WEB_' + Date.now(),
+        card_idm: cardIdm,
         punch_type: punchType,
       });
       await fetchTodayStatus();

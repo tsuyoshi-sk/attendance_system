@@ -12,7 +12,7 @@ import logging
 
 from ..database import get_db
 from ..models.user import User
-from ...config.config import settings
+from config.config import settings
 
 logger = logging.getLogger(__name__)
 

@@ -53,11 +53,7 @@ class AuthService:
             logger.warning(f"認証失敗: パスワードが一致しません (user: {username})")
             return None
         
-        # 最終ログイン時刻を更新
-        user.last_login = datetime.utcnow()
-        self.db.commit()
-        
-        logger.info(f"認証成功: {username}")
+        logger.info(f"Authentication successful for user: {username}")
         return user
     
     def create_user(

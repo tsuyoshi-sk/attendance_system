@@ -29,9 +29,23 @@
 		BAAA8A542EC7F5DD00608C68 /* NFCTimecardAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NFCTimecardAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BAAA8A812ECAA4BE00608C68 /* Exceptions for "NFCTimecardApp" folder in "NFCTimecardApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Managers/NFCManager.swift,
+				Views/NFCScanView.swift,
+			);
+			target = BAAA8A3C2EC7F5DB00608C68 /* NFCTimecardApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BAAA8A3F2EC7F5DB00608C68 /* NFCTimecardApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BAAA8A812ECAA4BE00608C68 /* Exceptions for "NFCTimecardApp" folder in "NFCTimecardApp" target */,
+			);
 			path = NFCTimecardApp;
 			sourceTree = "<group>";
 		};
@@ -397,7 +411,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V5FL927F7Y;
+				DEVELOPMENT_TEAM = 43DW52CGM6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -410,7 +424,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jp.co.hikari.NFCTimecardApp;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.co.hikari.nfctimecard.dev.nfc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -429,7 +443,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = V5FL927F7Y;
+				DEVELOPMENT_TEAM = 43DW52CGM6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -442,7 +456,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jp.co.hikari.NFCTimecardApp;
+				PRODUCT_BUNDLE_IDENTIFIER = jp.co.hikari.nfctimecard.dev.nfc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

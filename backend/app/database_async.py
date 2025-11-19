@@ -52,15 +52,23 @@ def get_async_database_url() -> str:
 
 
 # 非同期エンジンの作成
-async_engine: AsyncEngine = create_async_engine(
-    get_async_database_url(),
-    echo=settings.DATABASE_ECHO,
-    pool_size=settings.MIN_CONNECTIONS_COUNT,
-    max_overflow=settings.MAX_CONNECTIONS_COUNT - settings.MIN_CONNECTIONS_COUNT,
-    pool_pre_ping=True,  # 接続の健全性チェック
-    pool_recycle=3600,   # 1時間で接続をリサイクル
-    poolclass=NullPool if "sqlite" in settings.DATABASE_URL else QueuePool,
-)
+# SQLiteの場合とそれ以外で設定を分ける
+if "sqlite" in settings.DATABASE_URL:
+    async_engine: AsyncEngine = create_async_engine(
+        get_async_database_url(),
+        echo=settings.DATABASE_ECHO,
+        poolclass=NullPool,
+    )
+else:
+    async_engine: AsyncEngine = create_async_engine(
+        get_async_database_url(),
+        echo=settings.DATABASE_ECHO,
+        pool_size=settings.MIN_CONNECTIONS_COUNT,
+        max_overflow=settings.MAX_CONNECTIONS_COUNT - settings.MIN_CONNECTIONS_COUNT,
+        pool_pre_ping=True,  # 接続の健全性チェック
+        pool_recycle=3600,   # 1時間で接続をリサイクル
+        poolclass=QueuePool,
+    )
 
 # 非同期セッションファクトリの作成
 AsyncSessionLocal = async_sessionmaker(

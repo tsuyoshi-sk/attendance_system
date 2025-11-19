@@ -5,6 +5,7 @@
 """
 
 from typing import Dict, Any, Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -149,6 +150,12 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Update last_login in the main thread
+    user.last_login = datetime.utcnow()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
     # トークン生成
     access_token = service.create_access_token(user)
     
@@ -199,6 +206,12 @@ async def login_form(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="ユーザー名またはパスワードが正しくありません"
         )
+
+    # Update last_login in the main thread
+    user.last_login = datetime.utcnow()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
     
     # トークン生成
     access_token = service.create_access_token(user)
